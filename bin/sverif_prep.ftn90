@@ -5,7 +5,7 @@ program sverif_prep
    !@objective 
    !@description
    !  Calling Sequence:
-   !     sverif_prep FIELD_NAME LEVEL HOUR CONTROLE_FILE_NAME
+   !     sverif_prep FIELD_NAME LEVEL HOUR CONTROLE_FILE_NAME OUT_DIRNAME
    !  Control File format
    !     NENTRIES NMEMBERS
    !     MEMBER1_FILE_NAME
@@ -32,13 +32,13 @@ program sverif_prep
 
    integer,parameter :: MAX_MEMBERS = 32, NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
    character(len=4) :: varname_S
-   character(len=1024) :: ctrl_filename_S
+   character(len=1024) :: ctrl_filename_S,out_dirname_S
    integer :: istat,level,hour,nentries,nmembers,nn
    integer,allocatable :: entries(:,:)
    real(RDOUBLE),dimension(:,:),allocatable :: tstat
    type(memberdata_T) :: members(MAX_MEMBERS)
    !----------------------------------------------------------------------
-   istat = parse_args(varname_S,level,hour,ctrl_filename_S)
+   istat = parse_args(varname_S,level,hour,ctrl_filename_S,out_dirname_S)
    if (.not.RMN_IS_OK(istat)) stop
    print *,trim(varname_S),level,hour,trim(ctrl_filename_S)
    istat = read_control_file(ctrl_filename_S)
@@ -55,9 +55,13 @@ program sverif_prep
       write(0,*) 'Unable to allocate space for tstat'
       stop
    endif
+!$omp parallel private(istat)
+!$omp do
    do nn=1,nentries
       istat = test_entry(nn,tstat(nn,:))
    enddo
+!$omp enddo
+!$omp end parallel
    istat = write_tstat_file(tstat)
    if (.not.RMN_IS_OK(istat)) stop
    !----------------------------------------------------------------------
@@ -65,10 +69,10 @@ program sverif_prep
 contains
 
    !/*
-   function parse_args(F_varname_S,F_level,F_hour,F_ctrl_filename_S) result(F_istat)
+   function parse_args(F_varname_S,F_level,F_hour,F_ctrl_filename_S,F_out_dirname_S) result(F_istat)
       implicit none
       character(len=*),intent(out) :: F_varname_S
-      character(len=*),intent(out) :: F_ctrl_filename_S
+      character(len=*),intent(out) :: F_ctrl_filename_S,F_out_dirname_S
       integer,intent(out) :: F_level,F_hour
       integer :: F_istat
       !*/
@@ -92,8 +96,10 @@ contains
       endif
       call get_command_argument(4,F_ctrl_filename_S,mylen,istat)
       if (istat /= 0) F_istat = RMN_ERR
+      call get_command_argument(5,F_out_dirname_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
       if (.not.RMN_IS_OK(F_istat)) then
-         call msg(MSG_ERROR,'(sverif_prep) Wrong args, Usage: sverif_prep VARNAME LEVEL HOUR CTRL_FILENAME')
+         call msg(MSG_ERROR,'(sverif_prep) Wrong args, Usage: sverif_prep VARNAME LEVEL HOUR CTRL_FILENAME OUT_DIRNAME')
       endif
       !----------------------------------------------------------------------
       return
@@ -172,13 +178,14 @@ contains
       integer :: F_istat
       !*/
       integer :: fd,nn
-      character(len=1024) :: filename_S
+      character(len=1024) :: filename_S,filepath_S
       !----------------------------------------------------------------------
       F_istat = calc_filename(filename_S,'tstat',varname_S,level,hour)
+      filepath_S = trim(out_dirname_S)//'/'//trim(filename_S)
       fd = 0
-      F_istat = fnom(fd,filename_S,'SEQ/FMT',0)
+      F_istat = fnom(fd,filepath_S,'SEQ/FMT',0)
       if (.not.RMN_IS_OK(F_istat) .or. fd <= 0) then
-         call msg(MSG_ERROR,'(sverif_prep) Problem opening output file: '//trim(filename_S))
+         call msg(MSG_ERROR,'(sverif_prep) Problem opening output file: '//trim(filepath_S))
          return
       endif
       do nn=1,size(F_tstat,dim=1)
@@ -196,14 +203,15 @@ contains
      integer :: F_istat
      !*/
      integer :: fd,ii,jj,ni,nj
-     character(len=1024) :: filename_S
+     character(len=1024) :: filename_S,filepath_S
     !----------------------------------------------------------------------
      F_istat = RMN_OK
      ni = size(F_eavg_8,dim=1)
      nj = size(F_eavg_8,dim=2)
      F_istat = calc_filename(filename_S,'pre',varname_S,level,hour)
+     filepath_S = trim(out_dirname_S)//'/'//trim(filename_S)
      fd = 0
-     F_istat = fnom(fd,trim(filename_S),'SEQ/FMT',0)
+     F_istat = fnom(fd,trim(filepath_S),'SEQ/FMT',0)
      write(fd,'(a,2(x,i))') trim(varname_S),level,hour
      write(fd,'(3(i,x))') nmembers,ni,nj
      write(fd,'(2(d,x))') real(F_exavg_8),real(F_gss_8)

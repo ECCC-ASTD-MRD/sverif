@@ -136,7 +136,7 @@ contains
                  sqrt((F_eavg_8(ii,jj)-F_exavg_8)**2 * (dble(F_data(ii,jj))-avg_8)**2)
          enddo
       enddo
-      F_tstat = excor_8 / exss_8
+      F_tstat = log(1.d0 - excor_8/exss_8)
       !----------------------------------------------------------------------
    end function calc_r
 

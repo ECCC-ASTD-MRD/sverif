@@ -4,10 +4,11 @@ var<-args[1]
 lev<-as.numeric(args[2])
 prog<-as.numeric(args[3])
 file.in<-args[4]
-nboot<-as.numeric(args[5])
-ci.number<-as.numeric(args[6])
-ci.bounds<-as.numeric(args[7:(7+ci.number-1)])
-dfiles<-args[(7+ci.number):length(args)]
+statpath<-args[5]
+nboot<-as.numeric(args[6])
+ci.number<-as.numeric(args[7])
+ci.bounds<-as.numeric(args[8:(8+ci.number-1)])
+dfiles<-args[(8+ci.number):length(args)]
 
 # Utility functions
 cinterval<-function(file.out,t.stat,t.name,bounds,init=FALSE){
@@ -30,12 +31,12 @@ for (i in 1:nboot-1){
 }
 
 # Run ftn code to compute test statistics
-system(paste("sverif_prep",var,lev,prog,file.in))
+system(paste("sverif_prep.Abs",var,lev,prog,file.in,statpath))
 
 # Retrieve return file and ensemble statistics file
-t.stats<-read.table(system(paste("sverif_fname tstat",var,lev,prog),intern=TRUE),header=FALSE)
+t.stats<-read.table(paste(statpath,system(paste("sverif_fname.Abs tstat",var,lev,prog),intern=TRUE),sep='/'),header=FALSE)
 colnames(t.stats)<-c("T1","NT1","NT5","R")
-file.ens<-system(paste("sverif_fname pre",var,lev,prog),intern=TRUE)
+file.ens<-paste(statpath,system(paste("sverif_fname.Abs pre",var,lev,prog),intern=TRUE),sep='/')
 
 # Retrieve T1 statistic results
 cinterval(file.ens,t.stats,"T1",ci.bounds,init=TRUE)
