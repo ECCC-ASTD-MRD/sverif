@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+import optparse,subprocess,os,sys
+
+# Set default values
+statpath_name = "SVERIF_STATPATH"
+
+# Retrieve CL arguments
+usage = "%prog [options] FILE(S)"
+parser = optparse.OptionParser(usage=usage)
+parser.add_option("-n","--name",dest="var",default="GZ",
+                  help="atmospheric variable name [default GZ]",metavar="VARIABLE")
+parser.add_option("-l","--level",dest="level",default=500,
+                  help="pressure level (mb) [default 500]",metavar="PRESSURE")
+parser.add_option("-p","--prog",dest="prog",default=120,
+                  help="forecast (prog) hour ][default 120]",metavar="HOUR")
+parser.add_option("-c","--ci",dest="ci",default='0.05,0.01',
+                  help="confindence intervals [default '0.05,0.01']",metavar="INTERVALS")
+parser.add_option("-s","--statpath",dest="statpath",default=os.getenv(statpath_name),
+                  help="path to statistics produced by prep [default "+str(os.getenv(statpath_name))+"]",
+                  metavar="PATH")
+parser.add_option("-o","--output",dest="outfile",default="verif.png",
+                  help="output file (*.png,*.ps,*.pdf) [default verif.png]",metavar="NAME")
+parser.add_option("-v","--verbose",dest="verbose",default=False,action="store_true",
+                  help="emit verbose output",metavar="NAME")
+(options,args) = parser.parse_args()
+
+# Check for at least one data file
+if len(args) < 1:
+    parser.print_usage()
+    sys.exit(1)
+
+# Check that stat file and data files exist
+if not options.statpath:
+    sys.stderr.write("Statistics path must be defined with --statpath if ${"+statpath_name+"} is not set\n")
+    sys.exit(1)
+if not os.path.isdir(options.statpath):
+    sys.stderr.write("Statistics path "+options.statpath+" does not exist\n")
+    sys.exit(1)
+
+# Split requested confidence intervals
+cisplit = options.ci.split(',')
+cinum = len(cisplit)
+ci = ' '.join(cisplit)
+
+# Call R script for processing
+script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+command = 'R'+' --no-save --no-restore --args '+options.var+' '+str(options.level)+' '+str(options.prog)+' '+ \
+          options.statpath+' '+options.outfile+' '+str(cinum)+' '+ci+' '+ ' '.join(args)+' <'+os.path.join(script_path,'eval.R')
+if (options.verbose): sys.stdout.write(command+'\n')
+p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+error_message = p.stderr.read().rstrip('\n')
+output_message = p.stdout.read().rstrip('\n')
+if (options.verbose): sys.stdout.write(output_message+'\n')
+if (error_message):
+    sys.stderr.write(error_message+'\n')
+    sys.exit(1)
+sys.exit(0)

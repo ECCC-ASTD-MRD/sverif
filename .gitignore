@@ -1,0 +1,7 @@
+*~
+*.o
+*.mod
+*.png
+*.ps
+*.pdf
+data/

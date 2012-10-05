@@ -1,0 +1,225 @@
+!/*
+program sverif_eval
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
+   implicit none
+   !@objective 
+   !@description
+   !   Calling Sequence:
+   !      sverif_eval VARNAME LEVEL HOUR DATA_FILENAME CTRL_DIRNAME
+   !   Controle File Format, every line has this format:
+   !      VARNAME LEVEL HOUR NMEMBERS NI NJ EXAVG GSS MIN_T1 MAX_T1 MIN_NT1 MAX_NT1 MIN_NT5 MAX_NT5 MIN_R
+   !      EAVG(NI,NJ)
+   !      EVAR(NI,NJ)
+   !*/
+#include <msg.h>
+#include <arch_specific.hf>
+#include <rmnlib_basics.hf>
+#include <clib_interface.cdk>
+
+   integer,parameter :: MIN_T1  = 1
+   integer,parameter :: MAX_T1  = 2
+   integer,parameter :: MIN_NT1 = 3
+   integer,parameter :: MAX_NT1 = 4
+   integer,parameter :: MIN_NT5 = 5
+   integer,parameter :: MAX_NT5 = 6
+   integer,parameter :: MIN_R   = 7
+   integer,parameter :: MAX_R   = 8
+   integer,parameter :: CI = 9
+   integer,parameter :: NPARAMS = 9
+   integer,parameter :: MAX_CI = 9
+
+   character(len=1024) :: data_filename_S,ctrl_dirname_S,msg_S
+   character(len=4) :: varname_S
+   integer :: istat,level,hour,nmembers,nci,ni,nj,i_ci
+   real(RDOUBLE) :: params_8(MAX_CI,NPARAMS),t1_stat_8,nt1_stat_8,nt5_stat_8,r_stat_8
+   real,pointer :: data(:,:,:),data2d(:,:)
+   real(RDOUBLE),pointer :: eavg_8(:,:),evar_8(:,:)
+   real(RDOUBLE) :: exavg_8,gss_8
+   logical :: isok
+   !----------------------------------------------------------------------
+   call msg_verbosity(MSG_ERROR)
+   istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
+   if (.not.RMN_IS_OK(istat)) stop
+
+   istat = read_control_file(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8)
+   if (.not.RMN_IS_OK(istat)) stop
+
+   calc_nmembers = nmembers
+   istat = calc_read(data,data_filename_S,varname_S,level,hour)
+   if (.not.RMN_IS_OK(istat)) stop
+   data2d => data(:,:,1)
+
+   istat = calc_t1(data2d,exavg_8,gss_8,t1_stat_8)
+   write(RMN_STDOUT,*) 'calc_t1=',t1_stat_8
+   istat = calc_nt(0.01,data2d,eavg_8,evar_8,nt1_stat_8)
+   write(RMN_STDOUT,*) 'calc_nt1=',nt1_stat_8
+   istat = calc_nt(0.05,data2d,eavg_8,evar_8,nt5_stat_8)
+   write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat_8
+   istat = calc_r(data2d,exavg_8,eavg_8,r_stat_8)
+   write(RMN_STDOUT,*) 'calc_r=',r_stat_8
+
+   do i_ci=1,nci
+      isok = .true.
+      msg_s = ''
+      write(RMN_STDOUT,'(a)') ' '
+      write(msg_S,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params_8(i_ci,CI)),']'
+      if (t1_stat_8 <= params_8(i_ci,MAX_T1) .and. t1_stat_8 >= params_8(i_ci,MIN_T1)) then
+         write(RMN_STDOUT,'(a)') 'PASS T1  '//trim(msg_S)
+      else
+         write(RMN_STDOUT,'(a)') 'FAIL T1  '//trim(msg_S)
+         isok = .false.
+      endif
+
+      if (nt1_stat_8 <= params_8(i_ci,MAX_NT1)) then
+         write(RMN_STDOUT,'(a)') 'PASS NT1 '//trim(msg_S)
+      else
+         write(RMN_STDOUT,'(a)') 'FAIL NT1 '//trim(msg_S)
+         isok = .false.
+      endif
+
+      if (nt5_stat_8 <= params_8(i_ci,MAX_NT5)) then
+         write(RMN_STDOUT,'(a)') 'PASS NT5 '//trim(msg_S)
+      else
+         write(RMN_STDOUT,'(a)') 'FAIL NT5 '//trim(msg_S)
+         isok = .false.
+      endif
+
+      if (r_stat_8 >= params_8(i_ci,MIN_R)) then
+         write(RMN_STDOUT,'(a)') 'PASS R   '//trim(msg_S)
+      else
+         write(RMN_STDOUT,'(a)') 'FAIL R   '//trim(msg_S)
+         isok = .false.
+      endif
+      if (isok) then
+         write(RMN_STDOUT,'(a)') '* PASS overall '//trim(msg_S)
+      else
+         write(RMN_STDOUT,'(a)') '* FAIL overall   '//trim(msg_S)
+      endif
+   enddo
+   stop
+   !----------------------------------------------------------------------
+
+contains
+
+   !/*
+   function parse_args(F_data_filename_S,F_crtl_dirname_S,F_varname_S,F_level,F_hour) result(F_istat)
+      implicit none
+      character(len=*),intent(out) :: F_data_filename_S
+      character(len=*),intent(out) :: F_crtl_dirname_S
+      character(len=*),intent(out) :: F_varname_S
+      integer,intent(out) :: F_level,F_hour
+      integer :: F_istat
+      !*/
+      character(len=256) :: arg_S,msg_S
+      integer :: mylen,istat
+      !----------------------------------------------------------------------
+      F_istat = RMN_OK
+      call get_command_argument(1,F_varname_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
+      call get_command_argument(2,arg_S,mylen,istat)
+      if (istat /= 0) then
+         F_istat = RMN_ERR
+      else
+         read(arg_S,'(i4)') F_level
+      endif
+      call get_command_argument(3,arg_S,mylen,istat)
+      if (istat /= 0) then
+         F_istat = RMN_ERR
+      else
+         read(arg_S,'(i)') F_hour
+      endif
+      call get_command_argument(4,F_data_filename_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
+      call get_command_argument(5,F_crtl_dirname_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
+
+      if (.not.RMN_IS_OK(F_istat)) then
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Wrong args, Usage: sverif_eval VARNAME LEVEL HOUR DATA_FILENAME CRTL_DIRNAME'
+         return
+      endif
+      write(msg_S,'(a,a,a,i4,a,i4,a,a,a,a)') '(sverif_eval) For: ',trim(F_varname_S),'; ',F_level,'; ',F_hour,'; ',trim(F_data_filename_S),'; ', trim(F_crtl_dirname_S)
+      call msg(MSG_INFO,msg_S)
+      !----------------------------------------------------------------------
+      return
+   end function parse_args
+
+
+   !/*
+   function read_control_file(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8) result(F_istat)
+      implicit none
+      character(len=*),intent(in) :: F_dirname_S,F_varname_S
+      integer,intent(in) :: F_level,F_hour
+      integer,intent(out) :: F_nmembers,F_nci,F_ni,F_nj
+      real(RDOUBLE),intent(out) :: F_params_8(MAX_CI,NPARAMS),F_exavg_8,F_gss_8
+      real(RDOUBLE),pointer :: F_eavg_8(:,:),F_evar_8(:,:)
+      integer :: F_istat
+      !*/
+      character(len=1024) :: filename_S,line_S
+      character(len=4) :: varname0_S, varname_S
+      integer :: level, hour, istat, fileid,ii,jj,ii1,jj1,idx,i_ci
+      logical :: isfound
+      real(RDOUBLE) :: v1_8,v2_8
+      !----------------------------------------------------------------------
+      F_istat = calc_filename(filename_S,'pre',F_varname_S,F_level,F_hour)
+      filename_S = trim(F_dirname_S)//'/'//trim(filename_S)
+
+      F_istat = clib_isfile(trim(filename_S))
+      F_istat = min(clib_isreadok(trim(filename_S)),F_istat)
+      if (.not.RMN_IS_OK(F_istat)) then
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Control File not found or not readable: '//trim(filename_S)
+         return
+      endif
+      fileid = 0
+      F_istat = fnom(fileid,filename_S,'SEQ/FMT+R/O+OLD',0)
+      if (.not.RMN_IS_OK(F_istat) .or. fileid <= 0) then
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Problem opening Control file: '//trim(filename_S)
+         return
+      endif
+
+      read(fileid,*) varname_S,level,hour
+      read(fileid,*) F_nmembers,F_ni,F_nj
+      read(fileid,*) F_exavg_8,F_gss_8
+      allocate(F_eavg_8(F_ni,F_nj),F_evar_8(F_ni,F_nj))
+      do jj=1,F_nj
+         do ii=1,F_ni
+            read(fileid,*) ii1,jj1,F_eavg_8(ii,jj),F_evar_8(ii,jj)
+         enddo
+      enddo
+
+      read(fileid,'(a)') line_S
+      read(line_S,*) F_nci
+      if (F_nci > MAX_CI) then
+         F_istat = RMN_ERR
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Too many CI ',F_nci
+         return
+      endif
+      read(line_S,*) F_nci,F_params_8(1:F_nci,CI)
+ 
+      do i_ci=1,F_nci
+         read(fileid,*) idx,v1_8,v2_8
+         idx = min(max(1,idx),F_nci)
+         F_params_8(idx,MIN_T1) = v1_8; F_params_8(idx,MAX_T1) = v2_8
+      enddo
+      do i_ci=1,F_nci
+         read(fileid,*) idx,v1_8,v2_8
+         idx = min(max(1,idx),F_nci)
+         F_params_8(idx,MIN_NT1) = v1_8; F_params_8(idx,MAX_NT1) = v2_8
+      enddo
+      do i_ci=1,F_nci
+         read(fileid,*) idx,v1_8,v2_8
+         idx = min(max(1,idx),F_nci)
+         F_params_8(idx,MIN_NT5) = v1_8; F_params_8(idx,MAX_NT5) = v2_8
+      enddo
+      do i_ci=1,F_nci
+         read(fileid,*) idx,v1_8,v2_8
+         idx = min(max(1,idx),F_nci)
+         F_params_8(idx,MIN_R) = v1_8; F_params_8(idx,MAX_R) = v2_8
+      enddo
+      
+      istat = fclos(fileid)
+      !----------------------------------------------------------------------
+      return
+   end function read_control_file
+
+
+end program sverif_eval

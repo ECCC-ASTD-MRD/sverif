@@ -1,0 +1,346 @@
+!/*
+program sverif_prep
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
+   implicit none
+   !@objective 
+   !@description
+   !  Calling Sequence:
+   !     sverif_prep FIELD_NAME LEVEL HOUR CONTROLE_FILE_NAME
+   !  Control File format
+   !     NENTRIES NMEMBERS
+   !     MEMBER1_FILE_NAME
+   !     MEMBER2_FILE_NAME
+   !     ...
+   !     ENTRY1_MEMBER_NB LIST_OF_CONTROL_MEMBERS_NB
+   !     ENTRY2_MEMBER_NB LIST_OF_CONTROL_MEMBERS_NB
+   !     ...
+   !  Ouput
+   !     3 numbers per line (one per test result)
+   !     One line per entry
+   !     .FtoR_GZ500_120h.dat
+   !*/
+#include <msg.h>
+#include <arch_specific.hf>
+#include <rmnlib_basics.hf>
+#include <clib_interface.cdk>
+   type :: memberdata_T
+      character(len=1024) :: f_S
+      real,pointer :: d(:,:,:)
+      integer :: ni,nj
+      real(RDOUBLE) :: xsum_8,nbpts_8
+   end type memberdata_T
+
+   integer,parameter :: MAX_MEMBERS = 32, NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
+   character(len=4) :: varname_S
+   character(len=1024) :: ctrl_filename_S
+   integer :: istat,level,hour,nentries,nmembers,nn
+   integer,allocatable :: entries(:,:)
+   real(RDOUBLE),dimension(:,:),allocatable :: tstat
+   type(memberdata_T) :: members(MAX_MEMBERS)
+   !----------------------------------------------------------------------
+   istat = parse_args(varname_S,level,hour,ctrl_filename_S)
+   if (.not.RMN_IS_OK(istat)) stop
+   print *,trim(varname_S),level,hour,trim(ctrl_filename_S)
+   istat = read_control_file(ctrl_filename_S)
+   if (.not.RMN_IS_OK(istat)) stop
+   print *,'nentries, nmembers',nentries,nmembers
+   do nn=1,nmembers
+      print *,nn,':',trim(members(nn)%f_S)
+      istat = min(calc_read(members(nn)%d,members(nn)%f_S,varname_S,level,hour),istat)
+      if (RMN_IS_OK(istat)) istat = min(prep_members(members(nn)%d,members(nn)%ni,members(nn)%nj,members(nn)%nbpts_8,members(nn)%xsum_8),istat)
+   enddo
+   if (.not.RMN_IS_OK(istat)) stop
+   allocate(tstat(nentries,NSTAT),stat=istat)
+   if (istat /= 0) then
+      write(0,*) 'Unable to allocate space for tstat'
+      stop
+   endif
+   do nn=1,nentries
+      istat = test_entry(nn,tstat(nn,:))
+   enddo
+   istat = write_tstat_file(tstat)
+   if (.not.RMN_IS_OK(istat)) stop
+   !----------------------------------------------------------------------
+
+contains
+
+   !/*
+   function parse_args(F_varname_S,F_level,F_hour,F_ctrl_filename_S) result(F_istat)
+      implicit none
+      character(len=*),intent(out) :: F_varname_S
+      character(len=*),intent(out) :: F_ctrl_filename_S
+      integer,intent(out) :: F_level,F_hour
+      integer :: F_istat
+      !*/
+      character(len=128) :: arg_S
+      integer :: mylen,istat
+      !----------------------------------------------------------------------
+      F_istat = RMN_OK
+      call get_command_argument(1,F_varname_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
+      call get_command_argument(2,arg_S,mylen,istat)
+     if (istat /= 0) then
+         F_istat = RMN_ERR
+      else
+         read(arg_S,'(i)') F_level
+      endif
+      call get_command_argument(3,arg_S,mylen,istat)
+      if (istat /= 0) then
+         F_istat = RMN_ERR
+      else
+         read(arg_S,'(i)') F_hour
+      endif
+      call get_command_argument(4,F_ctrl_filename_S,mylen,istat)
+      if (istat /= 0) F_istat = RMN_ERR
+      if (.not.RMN_IS_OK(F_istat)) then
+         call msg(MSG_ERROR,'(sverif_prep) Wrong args, Usage: sverif_prep VARNAME LEVEL HOUR CTRL_FILENAME')
+      endif
+      !----------------------------------------------------------------------
+      return
+   end function parse_args
+
+   !/*
+   function read_control_file(F_filename_S) result(F_istat)
+      implicit none
+      character(len=*),intent(in) :: F_filename_S
+      integer :: F_istat
+      !*/
+      integer :: istat, fileid, nn
+      character(len=128) :: nmembers_S
+      character(len=1024) :: fpath
+      !----------------------------------------------------------------------
+      F_istat = clib_isfile(trim(F_filename_S))
+      F_istat = min(clib_isreadok(trim(F_filename_S)),F_istat)
+      if (.not.RMN_IS_OK(F_istat)) then
+         call msg(MSG_ERROR,'(sverif_prep) Control File not found or not readable: '//trim(F_filename_S))
+         return
+      endif
+      fileid = 0
+      F_istat = fnom(fileid,F_filename_S,'SEQ/FMT+R/O+OLD',0)
+      if (.not.RMN_IS_OK(F_istat) .or. fileid <= 0) then
+         call msg(MSG_ERROR,'(sverif_prep) Problem opening Control file: '//trim(F_filename_S))
+         return
+      endif
+
+      read(fileid,*,iostat=istat) nentries,nmembers
+      if (istat /=0 ) then
+         call msg(MSG_ERROR,'(sverif_prep) Problem reading Control file: '//trim(F_filename_S))
+         return
+      endif
+      if (nmembers > MAX_MEMBERS) then
+         call msg(MSG_ERROR,'(sverif_prep) Too many members')
+         F_istat = RMN_ERR
+         return
+      endif
+      do nn=1,nmembers
+         read(fileid,*,iostat=istat) fpath
+         if (istat /=0 ) then
+            call msg(MSG_ERROR,'(sverif_prep) Problem reading members filenames in Control file: '//trim(F_filename_S))
+            F_istat = RMN_ERR
+         endif
+         do while (index(fpath,':') > 0)
+            fpath(index(fpath,':'):index(fpath,':')) = '/'
+         enddo
+         members(nn)%f_S = trim(fpath)
+      enddo
+
+      allocate(entries(nentries,0:nmembers),stat=istat)
+      if (istat /= 0) then
+         call msg(MSG_ERROR,'(sverif_prep) Problem allocating memory for control file entries')
+         F_istat = RMN_ERR
+      endif
+      write(nmembers_S,'(i)') nmembers
+      do nn=1,nentries
+         read(fileid,*,iostat=istat) entries(nn,0:nmembers)
+         if (istat /=0 ) then
+            call msg(MSG_ERROR,'(sverif_prep) Problem reading entries in Control file: '//trim(F_filename_S))
+            F_istat = RMN_ERR
+            return
+         endif
+      enddo
+
+      istat = fclos(fileid)
+      !----------------------------------------------------------------------
+      return
+   end function read_control_file
+
+
+   !/*
+   function write_tstat_file(F_tstat) result(F_istat)
+      implicit none
+      real(RDOUBLE),dimension(:,:),intent(in) :: F_tstat
+      integer :: F_istat
+      !*/
+      integer :: fd,nn
+      character(len=1024) :: filename_S
+      !----------------------------------------------------------------------
+      F_istat = calc_filename(filename_S,'tstat',varname_S,level,hour)
+      fd = 0
+      F_istat = fnom(fd,filename_S,'SEQ/FMT',0)
+      if (.not.RMN_IS_OK(F_istat) .or. fd <= 0) then
+         call msg(MSG_ERROR,'(sverif_prep) Problem opening output file: '//trim(filename_S))
+         return
+      endif
+      do nn=1,size(F_tstat,dim=1)
+         write(fd,'(100f)') F_tstat(nn,:)
+      enddo
+      F_istat = fclos(fd)
+      return
+    end function write_tstat_file
+
+   !/*
+   function write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
+     implicit none
+     real(RDOUBLE),intent(in) :: F_exavg_8,F_gss_8
+     real(RDOUBLE),dimension(:,:),intent(in) :: F_eavg_8,F_evar_8
+     integer :: F_istat
+     !*/
+     integer :: fd,ii,jj,ni,nj
+     character(len=1024) :: filename_S
+    !----------------------------------------------------------------------
+     F_istat = RMN_OK
+     ni = size(F_eavg_8,dim=1)
+     nj = size(F_eavg_8,dim=2)
+     F_istat = calc_filename(filename_S,'pre',varname_S,level,hour)
+     fd = 0
+     F_istat = fnom(fd,trim(filename_S),'SEQ/FMT',0)
+     write(fd,'(a,2(x,i))') trim(varname_S),level,hour
+     write(fd,'(3(i,x))') nmembers,ni,nj
+     write(fd,'(2(d,x))') real(F_exavg_8),real(F_gss_8)
+     do jj=1,nj
+        do ii=1,ni
+           write(fd,'(2(i,x),2(d,x))') ii,jj,real(F_eavg_8(ii,jj)),real(F_evar_8(ii,jj))
+        enddo
+     enddo
+     F_istat = fclos(fd)
+     return
+   end function write_ens_stats
+
+   !/*
+   function prep_members(F_data,F_ni,F_nj,F_nbpts_8,F_xsum_8) result(F_istat)
+      implicit none
+      real,pointer :: F_data(:,:,:)
+      integer,intent(out) :: F_ni,F_nj
+      real(RDOUBLE),intent(out) :: F_nbpts_8,F_xsum_8
+      integer :: F_istat
+      !*/
+      integer :: ii,jj
+      !----------------------------------------------------------------------
+      F_istat = RMN_OK
+      F_ni = size(F_data,1)
+      F_nj = size(F_data,2)
+      F_nbpts_8 = dble(size(F_data))
+      F_xsum_8 = 0.d0
+      do jj=1,F_nj
+         do ii=1,F_ni
+            F_xsum_8 = F_xsum_8 + dble(F_data(ii,jj,1))
+         enddo
+      enddo
+      !----------------------------------------------------------------------
+      return
+   end function prep_members
+
+   !/*
+   function test_entry(F_entry,F_tstat) result(F_istat)
+      implicit none
+      integer :: F_entry,F_istat
+      real(RDOUBLE), dimension(:), intent(out) :: F_tstat
+      !*/
+      integer :: err
+      real(RDOUBLE) :: exavg_8,gss_8
+      real(RDOUBLE), dimension(members(1)%ni,members(1)%nj) :: eavg_8,evar_8
+      !----------------------------------------------------------------------
+      F_istat = RMN_ERR
+      !#      test member number    is in entries(F_entry,0)
+      !#      control members list  is in entries(F_entry,1:nmembers)
+      F_istat = prep_entry(F_entry,exavg_8,eavg_8,gss_8,evar_8)
+      if (F_istat /= RMN_OK) then
+         write(0,*) 'Error returned by prep_entry'
+         return
+      endif
+      calc_nmembers = nmembers
+      F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss_8,F_tstat(T1))
+      if (F_istat /= RMN_OK) then
+         write(0,*) 'Error returned by calc_t1'
+         return
+      endif
+      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT1))
+      if (F_istat /= RMN_OK) then
+         write(0,*) 'Error returned by calc_nt(1)'
+         return
+      endif
+      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT5))
+      if (F_istat /= RMN_OK) then
+         write(0,*) 'Error returned by calc_nt(5)'
+         return
+      endif
+      F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg_8,eavg_8,F_tstat(R))
+      if (F_istat /= RMN_OK) then
+         write(0,*) 'Error returned by calc_r'
+         return
+      endif
+      !----------------------------------------------------------------------
+      return
+   end function test_entry
+
+   !/*
+   function prep_entry(F_entry,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
+      implicit none
+      integer, intent(in) :: F_entry
+      real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
+      real(RDOUBLE), dimension(:,:), intent(out) :: F_eavg_8,F_evar_8
+      integer :: F_istat
+      !*/
+      integer :: imember,ii,jj,ni,nj
+      !----------------------------------------------------------------------
+      F_istat = RMN_OK
+      ni = size(F_eavg_8,dim=1)
+      nj = size(F_eavg_8,dim=2)
+      F_exavg_8 = 0.d0
+      ! Compute the ensemble mean value
+      do imember=1,nmembers
+         F_exavg_8 = F_exavg_8 + members(entries(F_entry,imember))%xsum_8
+      enddo
+      F_exavg_8 = F_exavg_8/(ni*nj*(nmembers))
+      ! Compute the ensemble mean field
+      F_eavg_8 = 0.d0
+      do imember=1,nmembers
+         do jj=1,nj
+            do ii=1,ni
+               F_eavg_8(ii,jj) = F_eavg_8(ii,jj) + dble(members(entries(F_entry,imember))%d(ii,jj,1))
+            enddo
+         enddo
+      enddo
+      F_eavg_8 = F_eavg_8/dble(nmembers)
+      ! Compute the global sum of squares
+      F_gss_8 = 0.d0
+      do imember=1,nmembers
+         do jj=1,nj
+            do ii=1,ni
+               F_gss_8 = F_gss_8 + (dble(members(entries(F_entry,imember))%d(ii,jj,1)) - F_exavg_8)**2
+            enddo
+         enddo
+      enddo
+      ! Compute the ensemble variance
+      F_evar_8 = 0.d0
+      do imember=1,nmembers
+         do jj=1,nj
+            do ii=1,ni
+               F_evar_8(ii,jj) = F_evar_8(ii,jj) + (dble(members(entries(F_entry,imember))%d(ii,jj,1)) - F_eavg_8(ii,jj))**2
+            enddo
+         enddo
+      enddo
+      F_evar_8 = F_evar_8/dble(nmembers)
+      ! Dump results for first (ordered) vector
+      if (F_entry == 1) then
+         F_istat = write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8)
+         if (F_istat /= RMN_OK) then
+            write(0,*) 'Error returned by write_ens_stats'
+            return
+         endif
+      endif
+      !----------------------------------------------------------------------
+      return
+   end function prep_entry
+
+end program sverif_prep
