@@ -56,7 +56,7 @@ fd = tempfile.NamedTemporaryFile()
 
 # Call R script for processing
 script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-command = 'export OMP_NUM_THREADS='+options.threads+'; R'+' --no-save --no-restore --args '+options.var+' '+str(options.level)+' '+str(options.prog)+' '+ \
+command = 'export OMP_NUM_THREADS='+str(options.threads)+'; R'+' --no-save --no-restore --args '+options.var+' '+str(options.level)+' '+str(options.prog)+' '+ \
           fd.name+' '+options.statpath+' '+str(options.nboot)+' '+str(cinum)+' '+ci+' '+ ' '.join(args)+' <'+os.path.join(script_path,'prep.R')
 if (options.verbose): sys.stdout.write(command+'\n')
 p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
