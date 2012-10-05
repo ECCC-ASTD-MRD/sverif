@@ -117,11 +117,9 @@ contains
     !  Internal variables
     integer :: j
     real(kind=8) :: ser,tmp,x1,y
-    real(kind=8), save :: stp=2.5066282746310005d0
-    real(kind=8), dimension(6), save :: cof
-
-    !  Initialize coefficients
-    cof = (/76.18009172947146d0,-86.50532032941677d0,24.01409824083091d0,         &
+    real(kind=8), parameter :: STP=2.5066282746310005d0
+    real(kind=8), dimension(6), parameter :: COF = &
+         (/76.18009172947146d0,-86.50532032941677d0,24.01409824083091d0,         &
          -1.231739572450155d0,.1208650973866179d-2,-.5395239384953d-5/)
 
     !  Compute gamma function
@@ -130,11 +128,11 @@ contains
     tmp = x1+5.5d0
     tmp = (x1+0.5d0)*log(tmp)-tmp
     ser=1.000000000190015d0
-    do j=1,size(cof)
+    do j=1,size(COF)
        y = y+1.d0
-       ser = ser + cof(j)/y
+       ser = ser + COF(j)/y
     enddo
-    gamma = tmp+log(stp*ser/x1)
+    gamma = tmp+log(STP*ser/x1)
 
     !  End of subprogram
     return
