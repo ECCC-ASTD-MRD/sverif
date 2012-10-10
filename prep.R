@@ -26,7 +26,7 @@ for (f in dfiles){
   write(gsub('/',':',f),file=file.in,append=TRUE)
 }
 write(c(1,seq(1,length(dfiles))),file=file.in,append=TRUE,ncolumns=length(dfiles)+1)
-for (i in 1:nboot-1){
+for (i in 1:(nboot-1)){
   write(c(sample(seq(1,length(dfiles)),1),sample(seq(1,length(dfiles)),length(dfiles),repl=TRUE)),file=file.in,append=TRUE,ncolumns=length(dfiles)+1)
 }
 
@@ -47,4 +47,3 @@ cinterval(file.ens,t.stats,"NT5",ci.bounds)
 
 # Retrieve R statistic results
 cinterval(file.ens,t.stats,"R",ci.bounds)
-
