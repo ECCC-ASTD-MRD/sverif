@@ -16,7 +16,7 @@ parser.add_option("-p","--prog",dest="prog",default=120,
 parser.add_option("-c","--ci",dest="ci",default='0.05,0.01',
                   help="confindence intervals [default '0.05,0.01']",metavar="INTERVALS")
 parser.add_option("-s","--statpath",dest="statpath",default=os.getenv(statpath_name),
-                  help="path to statistics produced by prep [default "+str(os.getenv(statpath_name))+"]",
+                  help="path to statistics produced by prep [default "+statpath_name+"="+str(os.getenv(statpath_name))+"]",
                   metavar="PATH")
 parser.add_option("-b","--boot",dest="nboot",default=1000,
                   help="number of samples for bootstrapping [default 1000]",metavar="NUMBER")
