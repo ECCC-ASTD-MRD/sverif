@@ -1,6 +1,7 @@
 !/*
 program sverif_prep
-   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,calc_var
+   use rng_mod, only: rng_t,rng_seed
    implicit none
    !@objective 
    !@description
@@ -35,33 +36,62 @@ program sverif_prep
    character(len=1024) :: ctrl_filename_S,out_dirname_S
    integer :: istat,level,hour,nentries,nmembers,nn
    integer,allocatable :: entries(:,:)
-   real(RDOUBLE),dimension(:,:),allocatable :: tstat
+   real :: scale
+   real, dimension(:,:,:), allocatable :: flds0
+   real(RDOUBLE),dimension(:,:),allocatable :: tstat,evar0_8
    type(memberdata_T) :: members(MAX_MEMBERS)
+   type(rng_t), dimension(:), allocatable :: rng
    !----------------------------------------------------------------------
+
+   ! Read inputs to program (arguments, control file and data)
    istat = parse_args(varname_S,level,hour,ctrl_filename_S,out_dirname_S)
    if (.not.RMN_IS_OK(istat)) stop
    print *,trim(varname_S),level,hour,trim(ctrl_filename_S)
    istat = read_control_file(ctrl_filename_S)
    if (.not.RMN_IS_OK(istat)) stop
    print *,'nentries, nmembers',nentries,nmembers
+   calc_nmembers = nmembers
    do nn=1,nmembers
       print *,nn,':',trim(members(nn)%f_S)
       istat = min(calc_read(members(nn)%d,members(nn)%f_S,varname_S,level,hour),istat)
       if (RMN_IS_OK(istat)) istat = min(prep_members(members(nn)%d,members(nn)%ni,members(nn)%nj,members(nn)%nbpts_8,members(nn)%xsum_8),istat)
    enddo
    if (.not.RMN_IS_OK(istat)) stop
-   allocate(tstat(nentries,NSTAT),stat=istat)
+
+   ! Allocate space based on input sizes
+   allocate(tstat(nentries,NSTAT),evar0_8(members(1)%ni,members(1)%nj),stat=istat)
    if (istat /= 0) then
-      write(0,*) 'Unable to allocate space for tstat'
+      write(0,*) '(sverif_prep) Unable to allocate space for basic variables'
       stop
    endif
+   allocate(flds0(members(1)%ni,members(1)%nj,nmembers),stat=istat)
+   if (istat /= 0) then
+      write(0,*) '(sverif_prep) Unable to allocate space for fields'
+      stop
+   endif
+   allocate(rng(nentries),stat=istat)
+   if (istat /= 0) then
+      write(0,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
+      stop
+   endif
+
+   ! Compute variance of the full sample for inflation
+   do nn=1,nmembers
+      flds0(:,:,nn) = members(nn)%d(:,:,1)
+   enddo
+   istat = calc_var(flds0,evar0_8)
+
+   ! Compute test statistics for each sample entry
 !$omp parallel private(istat)
 !$omp do
    do nn=1,nentries
-      istat = test_entry(nn,tstat(nn,:))
+      call rng_seed(rng(nn),932117+nn)  !create thread-safe random number seeds
+      istat = test_entry(nn,evar0_8,scale,rng(nn),tstat(nn,:))
    enddo
 !$omp enddo
 !$omp end parallel
+
+   ! Create a list of test statistics for each entry
    istat = write_tstat_file(tstat)
    if (.not.RMN_IS_OK(istat)) stop
    !----------------------------------------------------------------------
@@ -128,7 +158,7 @@ contains
          return
       endif
 
-      read(fileid,*,iostat=istat) nentries,nmembers
+      read(fileid,*,iostat=istat) nentries,nmembers,scale
       if (istat /=0 ) then
          call msg(MSG_ERROR,'(sverif_prep) Problem reading Control file: '//trim(F_filename_S))
          return
@@ -249,10 +279,15 @@ contains
    end function prep_members
 
    !/*
-   function test_entry(F_entry,F_tstat) result(F_istat)
+   function test_entry(F_entry,F_evar0_8,F_scale,F_rng,F_tstat) result(F_istat)
+      use rng_mod, only: rng_t
       implicit none
-      integer :: F_entry,F_istat
+      integer, intent(in) :: F_entry
+      real, intent(in) :: F_scale
+      type(rng_t), intent(inout) :: F_rng
+      real(RDOUBLE), dimension(:,:), intent(in) :: F_evar0_8
       real(RDOUBLE), dimension(:), intent(out) :: F_tstat
+      integer :: F_istat
       !*/
       integer :: err
       real(RDOUBLE) :: exavg_8,gss_8
@@ -261,23 +296,24 @@ contains
       F_istat = RMN_ERR
       !#      test member number    is in entries(F_entry,0)
       !#      control members list  is in entries(F_entry,1:nmembers)
-      F_istat = prep_entry(F_entry,exavg_8,eavg_8,gss_8,evar_8)
+      F_istat = prep_entry(F_entry,F_evar0_8,F_scale,F_rng,exavg_8,eavg_8,gss_8,evar_8)
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by prep_entry'
          return
       endif
-      calc_nmembers = nmembers
       F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss_8,F_tstat(T1))
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_t1'
          return
       endif
       F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT1))
+!!$      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT1)) !works, but...
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_nt(1)'
          return
       endif
       F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT5))
+!!$      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT5)) !works, but...
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_nt(5)'
          return
@@ -292,22 +328,36 @@ contains
    end function test_entry
 
    !/*
-   function prep_entry(F_entry,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
+   function prep_entry(F_entry,F_evar0_8,F_scale,F_rng,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
       implicit none
       integer, intent(in) :: F_entry
+      real(RDOUBLE), dimension(:,:), intent(in) :: F_evar0_8
+      real, intent(in) :: F_scale
+      type(rng_t), intent(inout) :: F_rng
       real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
       real(RDOUBLE), dimension(:,:), intent(out) :: F_eavg_8,F_evar_8
       integer :: F_istat
       !*/
       integer :: imember,ii,jj,ni,nj
+      real(RDOUBLE), dimension(size(F_evar_8,dim=1),size(F_evar_8,dim=2),nmembers) :: data
       !----------------------------------------------------------------------
       F_istat = RMN_OK
       ni = size(F_eavg_8,dim=1)
       nj = size(F_eavg_8,dim=2)
-      F_exavg_8 = 0.d0
-      ! Compute the ensemble mean value
+
+      ! Perturb fields based on a parameteric model
       do imember=1,nmembers
-         F_exavg_8 = F_exavg_8 + members(entries(F_entry,imember))%xsum_8
+         F_istat = perturb(members(entries(F_entry,imember))%d(:,:,1),F_evar0_8,F_scale,F_rng,data(:,:,imember))
+      enddo
+
+      ! Compute the ensemble mean value
+      F_exavg_8 = 0.d0
+      do imember=1,nmembers
+         do jj=1,nj
+            do ii=1,ni
+               F_exavg_8 = F_exavg_8 + data(ii,jj,imember)
+            enddo
+         enddo
       enddo
       F_exavg_8 = F_exavg_8/(ni*nj*(nmembers))
       ! Compute the ensemble mean field
@@ -315,7 +365,7 @@ contains
       do imember=1,nmembers
          do jj=1,nj
             do ii=1,ni
-               F_eavg_8(ii,jj) = F_eavg_8(ii,jj) + dble(members(entries(F_entry,imember))%d(ii,jj,1))
+               F_eavg_8(ii,jj) = F_eavg_8(ii,jj) + data(ii,jj,imember)
             enddo
          enddo
       enddo
@@ -325,7 +375,7 @@ contains
       do imember=1,nmembers
          do jj=1,nj
             do ii=1,ni
-               F_gss_8 = F_gss_8 + (dble(members(entries(F_entry,imember))%d(ii,jj,1)) - F_exavg_8)**2
+               F_gss_8 = F_gss_8 + (data(ii,jj,imember) - F_exavg_8)**2
             enddo
          enddo
       enddo
@@ -334,7 +384,7 @@ contains
       do imember=1,nmembers
          do jj=1,nj
             do ii=1,ni
-               F_evar_8(ii,jj) = F_evar_8(ii,jj) + (dble(members(entries(F_entry,imember))%d(ii,jj,1)) - F_eavg_8(ii,jj))**2
+               F_evar_8(ii,jj) = F_evar_8(ii,jj) + (data(ii,jj,imember) - F_eavg_8(ii,jj))**2
             enddo
          enddo
       enddo
@@ -350,5 +400,37 @@ contains
       !----------------------------------------------------------------------
       return
    end function prep_entry
+
+   function perturb(F_data,F_var_8,F_scale,F_rng,F_perturb_data_8) result(F_istat)
+     use rng_mod, only: rng_t,rng_uniform
+     ! Select a Gaussian perturbation based on the scaled ensemble variance
+     implicit none
+     real, dimension(:,:), intent(in) :: F_data
+     real(RDOUBLE), dimension(:,:), intent(in) :: F_var_8
+     real, intent(in) :: F_scale
+     type(rng_t), intent(inout) :: F_rng
+     real(RDOUBLE), dimension(:,:), intent(out) :: F_perturb_data_8
+     integer :: F_istat
+     !*/
+     integer :: ii,jj
+     real, parameter :: PI=3.14159
+     real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: rnd
+     F_istat = RMN_OK
+     to_perturb: if (F_scale < epsilon(F_scale)) then
+        F_perturb_data_8 = dble(F_data)
+     else
+        do jj=1,size(F_data,dim=2)
+           do ii=1,size(F_data,dim=1)
+              rnd(ii,jj) = rng_uniform(F_rng)
+           enddo
+        enddo
+        where (F_var_8 < epsilon(F_data))
+           F_perturb_data_8 = dble(F_data)
+        elsewhere
+           F_perturb_data_8 = dble(F_data + F_scale*(1./sqrt(2.*PI*F_var_8)*exp(-rnd**2/(2.*F_var_8))))
+        endwhere
+     endif to_perturb
+     return
+   end function perturb
 
 end program sverif_prep

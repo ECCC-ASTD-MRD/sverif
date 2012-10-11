@@ -8,7 +8,7 @@ VGRID         = descrip modelutils_base
 LIBS          = modelutils $(VGRID) $(COMM)
 OMP	      = -openmp
 
-OBJS = base_stats_mod.o calc_stat_mod.o
+OBJS = base_stats_mod.o calc_stat_mod.o rng_mod.o
 
 %.o : %.ftn90
 	s.compile -optf "$(FFLAGS)" $(OMP) -src $< -O 2

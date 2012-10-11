@@ -78,7 +78,7 @@ contains
        xError = x
        myX=min(max(x,0.),1.)
        write(6,*) 'WARNING: Invalid x-entry ',xError                              &
-            ,'for incomplete beta function ... clipped to ',x
+            ,'for incomplete beta function ... clipped to ',myX
     endif
 
     !  Compute front-end factors

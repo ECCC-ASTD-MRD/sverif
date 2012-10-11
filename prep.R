@@ -6,9 +6,10 @@ prog<-as.numeric(args[3])
 file.in<-args[4]
 statpath<-args[5]
 nboot<-as.numeric(args[6])
-ci.number<-as.numeric(args[7])
-ci.bounds<-as.numeric(args[8:(8+ci.number-1)])
-dfiles<-args[(8+ci.number):length(args)]
+inflation<-as.numeric(args[7])
+ci.number<-as.numeric(args[8])
+ci.bounds<-as.numeric(args[9:(9+ci.number-1)])
+dfiles<-args[(9+ci.number):length(args)]
 
 # Utility functions
 cinterval<-function(file.out,t.stat,t.name,bounds,init=FALSE){
@@ -21,7 +22,7 @@ cinterval<-function(file.out,t.stat,t.name,bounds,init=FALSE){
 }
 
 # Write to file for ftn calculations
-write(c(nboot,length(dfiles)),file=file.in)
+write(c(nboot,length(dfiles),inflation),file=file.in)
 for (f in dfiles){
   write(gsub('/',':',f),file=file.in,append=TRUE)
 }
@@ -47,3 +48,4 @@ cinterval(file.ens,t.stats,"NT5",ci.bounds)
 
 # Retrieve R statistic results
 cinterval(file.ens,t.stats,"R",ci.bounds)
+

@@ -20,6 +20,8 @@ parser.add_option("-s","--statpath",dest="statpath",default=os.getenv(statpath_n
                   metavar="PATH")
 parser.add_option("-b","--boot",dest="nboot",default=1000,
                   help="number of samples for bootstrapping [default 1000]",metavar="NUMBER")
+parser.add_option("-i","--inflation",dest="inflation",default=0,
+                  help="scaling of parametric inflation for small samples [default 0]",metavar="NUMBER")
 parser.add_option("-t","--threads",dest="threads",default=1,
                   help="number of OpenMP threads to run [default 1]",metavar="NUMBER")
 parser.add_option("-v","--verbose",dest="verbose",default=False,action="store_true",
@@ -56,8 +58,9 @@ fd = tempfile.NamedTemporaryFile()
 
 # Call R script for processing
 script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-command = 'export OMP_NUM_THREADS='+str(options.threads)+'; R'+' --no-save --no-restore --args '+options.var+' '+str(options.level)+' '+str(options.prog)+' '+ \
-          fd.name+' '+options.statpath+' '+str(options.nboot)+' '+str(cinum)+' '+ci+' '+ ' '.join(args)+' <'+os.path.join(script_path,'prep.R')
+command = 'export OMP_NUM_THREADS='+str(options.threads)+'; R'+' --no-save --no-restore --args '+options.var+' '+ \
+          str(options.level)+' '+str(options.prog)+' '+fd.name+' '+options.statpath+' '+str(options.nboot)+' '+ \
+          str(options.inflation)+' '+str(cinum)+' '+ci+' '+ ' '.join(args)+' <'+os.path.join(script_path,'prep.R')
 if (options.verbose): sys.stdout.write(command+'\n')
 p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 error_message = p.stderr.read().rstrip('\n')
