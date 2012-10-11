@@ -114,10 +114,10 @@ contains
    end function calc_var
 
    !/*
-   function calc_t1(F_data,F_exavg_8,F_gss_8,F_tstat) result(F_istat)
+   function calc_t1(F_data,F_exavg_8,F_gss0_8,F_gss_8,F_tstat) result(F_istat)
       implicit none
       real, dimension(:,:), intent(in) :: F_data
-      real(RDOUBLE), intent(in) :: F_exavg_8,F_gss_8
+      real(RDOUBLE), intent(in) :: F_exavg_8,F_gss0_8,F_gss_8
       real(RDOUBLE), intent(out) :: F_tstat
       integer :: F_istat
       !*/
@@ -132,7 +132,7 @@ contains
       F_istat = RMN_OK
       ni = size(F_data,dim=1)
       nj = size(F_data,dim=2)
-      exvar_8 = 2.d0*F_gss_8/dble(ni*nj*calc_nmembers*(ni*nj*calc_nmembers-1))
+      exvar_8 = (F_gss_8+F_gss0_8)/dble(ni*nj*calc_nmembers*(ni*nj*calc_nmembers-1))
       F_tstat = (F_exavg_8 - sum(dble(F_data))/size(F_data))/sqrt(exvar_8)
       !----------------------------------------------------------------------
    end function calc_t1
@@ -171,11 +171,11 @@ contains
    end function calc_r
 
    !/*
-   function calc_nt(F_crit,F_data,F_eavg_8,F_evar_8,F_tstat) result(F_istat)
+   function calc_nt(F_crit,F_data,F_eavg_8,F_evar0_8,F_evar_8,F_tstat) result(F_istat)
       implicit none
       real, intent(in) :: F_crit
       real, dimension(:,:), intent(in) :: F_data
-      real(RDOUBLE), dimension(:,:), intent(in) :: F_eavg_8,F_evar_8
+      real(RDOUBLE), dimension(:,:), intent(in) :: F_eavg_8,F_evar0_8,F_evar_8
       real(RDOUBLE), intent(out) :: F_tstat
       integer :: F_istat
       !*/
@@ -195,7 +195,8 @@ contains
       norm = sqrt(dble(calc_nmembers-1))
       do jj=1,nj
          do ii=1,ni
-            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(F_evar_8(ii,jj))
+!!$            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)))
+            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(F_evar_8(ii,jj)))
          enddo
       enddo
       pfld => tTest(tfld,calc_nmembers-1)

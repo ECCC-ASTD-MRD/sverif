@@ -49,11 +49,11 @@ program sverif_eval
    if (.not.RMN_IS_OK(istat)) stop
    data2d => data(:,:,1)
 
-   istat = calc_t1(data2d,exavg_8,gss_8,t1_stat_8)
+   istat = calc_t1(data2d,exavg_8,gss_8,gss_8,t1_stat_8)
    write(RMN_STDOUT,*) 'calc_t1=',t1_stat_8
-   istat = calc_nt(0.01,data2d,eavg_8,evar_8,nt1_stat_8)
+   istat = calc_nt(0.01,data2d,eavg_8,evar_8,evar_8,nt1_stat_8)
    write(RMN_STDOUT,*) 'calc_nt1=',nt1_stat_8
-   istat = calc_nt(0.05,data2d,eavg_8,evar_8,nt5_stat_8)
+   istat = calc_nt(0.05,data2d,eavg_8,evar_8,evar_8,nt5_stat_8)
    write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat_8
    istat = calc_r(data2d,exavg_8,eavg_8,r_stat_8)
    write(RMN_STDOUT,*) 'calc_r=',r_stat_8

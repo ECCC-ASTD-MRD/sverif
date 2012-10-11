@@ -37,8 +37,9 @@ program sverif_prep
    integer :: istat,level,hour,nentries,nmembers,nn
    integer,allocatable :: entries(:,:)
    real :: scale
+   real(RDOUBLE) :: exavg0_8,gss0_8
    real, dimension(:,:,:), allocatable :: flds0
-   real(RDOUBLE),dimension(:,:),allocatable :: tstat,evar0_8
+   real(RDOUBLE),dimension(:,:),allocatable :: tstat,evar0_8,eavg0_8
    type(memberdata_T) :: members(MAX_MEMBERS)
    type(rng_t), dimension(:), allocatable :: rng
    !----------------------------------------------------------------------
@@ -59,7 +60,7 @@ program sverif_prep
    if (.not.RMN_IS_OK(istat)) stop
 
    ! Allocate space based on input sizes
-   allocate(tstat(nentries,NSTAT),evar0_8(members(1)%ni,members(1)%nj),stat=istat)
+   allocate(tstat(nentries,NSTAT),stat=istat)
    if (istat /= 0) then
       write(0,*) '(sverif_prep) Unable to allocate space for basic variables'
       stop
@@ -74,6 +75,23 @@ program sverif_prep
       write(0,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
       stop
    endif
+
+   
+
+
+
+
+   allocate(eavg0_8(members(1)%ni,members(1)%nj),evar0_8(members(1)%ni,members(1)%nj),stat=istat)
+   if (istat /= 0) then
+      write(0,*) '(sverif_prep) Unable to allocate space for first-entry fields'
+      stop
+   endif
+   call rng_seed(rng(1),932118)
+   istat = prep_entry(1,evar0_8,0.,rng(1),exavg0_8,eavg0_8,gss0_8,evar0_8)
+
+
+
+
 
    ! Compute variance of the full sample for inflation
    do nn=1,nmembers
@@ -301,18 +319,18 @@ contains
          write(0,*) 'Error returned by prep_entry'
          return
       endif
-      F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss_8,F_tstat(T1))
+      F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss0_8,gss_8,F_tstat(T1))
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_t1'
          return
       endif
-      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT1))
+      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT1))
 !!$      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT1)) !works, but...
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_nt(1)'
          return
       endif
-      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar_8,F_tstat(NT5))
+      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT5))
 !!$      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT5)) !works, but...
       if (F_istat /= RMN_OK) then
          write(0,*) 'Error returned by calc_nt(5)'
@@ -421,14 +439,10 @@ contains
      else
         do jj=1,size(F_data,dim=2)
            do ii=1,size(F_data,dim=1)
-              rnd(ii,jj) = rng_uniform(F_rng)
+              F_perturb_data_8(ii,jj) = F_data(ii,jj) + F_var_8(ii,jj) * &
+                   dble(F_scale * (3. - 2.*(rng_uniform(F_rng)+rng_uniform(F_rng)+rng_uniform(F_rng))))
            enddo
         enddo
-        where (F_var_8 < epsilon(F_data))
-           F_perturb_data_8 = dble(F_data)
-        elsewhere
-           F_perturb_data_8 = dble(F_data + F_scale*(1./sqrt(2.*PI*F_var_8)*exp(-rnd**2/(2.*F_var_8))))
-        endwhere
      endif to_perturb
      return
    end function perturb
