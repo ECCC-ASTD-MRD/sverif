@@ -195,11 +195,10 @@ contains
       norm = sqrt(dble(calc_nmembers-1))
       do jj=1,nj
          do ii=1,ni
-!!$            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)))
-            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(F_evar_8(ii,jj)))
+            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)))
          enddo
       enddo
-      pfld => tTest(tfld,calc_nmembers-1)
+      pfld => tTest(tfld,2*(calc_nmembers-1))
       cnt = 0
       do jj=1,nj
          do ii=1,ni
