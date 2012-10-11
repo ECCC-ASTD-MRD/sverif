@@ -36,6 +36,7 @@ for (file in dfiles){
     t.max[[t.name]]<-max(t.max[[t.name]],get(t.long))
   }
   t.stats<-rbind(t.stats,list(name=(basename(dirname(file))),T1=calc_t1,NT1=calc_nt1,NT5=calc_nt5,R=calc_r))
+  eval(parse(text=test.results[grep("inflation",test.results)])[[1]])
 }
 
 # Retrieve pdes for test statistics
@@ -90,10 +91,11 @@ for (t.name in t.stat.names){
   addruns(t.stats,t.name)
 }
 par(default)
-default<-par(mar=c(0,4,0,2))
+default<-par(mar=c(0,4,0,2),las=1)
 plot(pde[["T1"]],type='n',xaxt='n',yaxt='n',xlab='',ylab='',bty='n')
 legend(x="center",legend=paste(100-100*ci.bounds,"% Confidence Interval",sep=''),col=seq(length(dfiles)+2,length(dfiles)+2+length(ci.bounds)),
        lty=1,lwd=6,cex=cex.mult*1.1,horiz=TRUE,bty='n')
+mtext(paste("Inflation:",signif(inflation,2)),side=4,cex=cex.mult*0.8,adj=1)
 plot(pde[["T1"]],type='n',xaxt='n',yaxt='n',xlab='',ylab='',bty='n')
 legend(x="center",legend=t.stats[,"name"],col=seq(2,length(dfiles)+1),ncol=round((length(dfiles)+1)/3,0),
        lty=1,lwd=3,cex=cex.mult*1.5,bg="white")

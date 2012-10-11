@@ -433,13 +433,15 @@ contains
      integer :: ii,jj
      real, parameter :: PI=3.14159
      real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: rnd
+     real(RDOUBLE), dimension(size(F_data,dim=1),size(F_data,dim=2)) :: sd_8
      F_istat = RMN_OK
      to_perturb: if (F_scale < epsilon(F_scale)) then
         F_perturb_data_8 = dble(F_data)
      else
+        sd_8 = sqrt(F_var_8)
         do jj=1,size(F_data,dim=2)
            do ii=1,size(F_data,dim=1)
-              F_perturb_data_8(ii,jj) = F_data(ii,jj) + F_var_8(ii,jj) * &
+              F_perturb_data_8(ii,jj) = F_data(ii,jj) + sd_8(ii,jj) * &
                    dble(F_scale * (3. - 2.*(rng_uniform(F_rng)+rng_uniform(F_rng)+rng_uniform(F_rng))))
            enddo
         enddo

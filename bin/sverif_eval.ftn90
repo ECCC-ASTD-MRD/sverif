@@ -31,6 +31,7 @@ program sverif_eval
    character(len=1024) :: data_filename_S,ctrl_dirname_S,msg_S
    character(len=4) :: varname_S
    integer :: istat,level,hour,nmembers,nci,ni,nj,i_ci
+   real :: inflation
    real(RDOUBLE) :: params_8(MAX_CI,NPARAMS),t1_stat_8,nt1_stat_8,nt5_stat_8,r_stat_8
    real,pointer :: data(:,:,:),data2d(:,:)
    real(RDOUBLE),pointer :: eavg_8(:,:),evar_8(:,:)
@@ -41,7 +42,7 @@ program sverif_eval
    istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) stop
 
-   istat = read_control_file(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8)
+   istat = read_control_file(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8,inflation)
    if (.not.RMN_IS_OK(istat)) stop
 
    calc_nmembers = nmembers
@@ -57,6 +58,7 @@ program sverif_eval
    write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat_8
    istat = calc_r(data2d,exavg_8,eavg_8,r_stat_8)
    write(RMN_STDOUT,*) 'calc_r=',r_stat_8
+   write(RMN_STDOUT,*) 'inflation=',inflation
 
    do i_ci=1,nci
       isok = .true.
@@ -145,13 +147,14 @@ contains
 
 
    !/*
-   function read_control_file(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8) result(F_istat)
+   function read_control_file(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8,F_inflation) result(F_istat)
       implicit none
       character(len=*),intent(in) :: F_dirname_S,F_varname_S
       integer,intent(in) :: F_level,F_hour
       integer,intent(out) :: F_nmembers,F_nci,F_ni,F_nj
       real(RDOUBLE),intent(out) :: F_params_8(MAX_CI,NPARAMS),F_exavg_8,F_gss_8
       real(RDOUBLE),pointer :: F_eavg_8(:,:),F_evar_8(:,:)
+      real, intent(out) :: F_inflation
       integer :: F_istat
       !*/
       character(len=1024) :: filename_S,line_S
@@ -215,6 +218,8 @@ contains
          idx = min(max(1,idx),F_nci)
          F_params_8(idx,MIN_R) = v1_8; F_params_8(idx,MAX_R) = v2_8
       enddo
+
+      read(fileid,*) F_inflation
       
       istat = fclos(fileid)
       !----------------------------------------------------------------------

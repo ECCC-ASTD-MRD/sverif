@@ -49,3 +49,6 @@ cinterval(file.ens,t.stats,"NT5",ci.bounds)
 # Retrieve R statistic results
 cinterval(file.ens,t.stats,"R",ci.bounds)
 
+# Add inflation information to ensemble file
+write(inflation,file=file.ens,append=TRUE)
+
