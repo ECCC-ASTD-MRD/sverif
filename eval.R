@@ -62,7 +62,11 @@ if (ext == 'png'){
 }
 
 # Generate plots of model run positions relative to the pde
-layout(matrix(c(1,2,3,4,5,5,6,6),ncol=2,byrow=TRUE),heights=c(.4,.4,.03,.17))
+layout(matrix(c(1,1,2,3,4,5,6,6,7,7),ncol=2,byrow=TRUE),heights=c(.04,.38,.38,.03,.17))
+default<-par(mar=c(0,4,1,2))
+plot(pde[["T1"]],type='n',xaxt='n',yaxt='n',xlab='',ylab='',bty='n',xlim=c(0,1),ylim=c(0,1))
+text(x=0.5,y=0.5,labels=paste('Evaluation of ',lev,' hPa ',var,' (',prog,'h)',sep=''),cex=2.6)
+par(default)
 default<-par(mar=c(5,5,4,2))
 for (t.name in t.stat.names){
   hist(pde[[t.name]],breaks=30,
