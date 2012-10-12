@@ -89,8 +89,8 @@ contains
       real(RDOUBLE), intent(out) :: F_tstat
       integer :: F_istat
       !*/
-      integer :: ii,jj,ni,nj
-      real(RDOUBLE) :: exvar_8
+      integer :: ii,jj
+      real(RDOUBLE) :: exvar_8,rni,rnj,rnt
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
@@ -98,9 +98,10 @@ contains
          return
       endif
       F_istat = RMN_OK
-      ni = size(F_data,dim=1)
-      nj = size(F_data,dim=2)
-      exvar_8 = (F_gss_8+F_gss0_8)/dble(ni*nj*calc_nmembers*(ni*nj*calc_nmembers-1))
+      rni = dble(size(F_data,dim=1))
+      rnj = dble(size(F_data,dim=2))
+      rnt = dble(calc_nmembers)
+      exvar_8 = (F_gss_8+F_gss0_8)/(rni*rnj*rnt*(rni*rnj*rnt-1d0))
       F_tstat = (F_exavg_8 - sum(dble(F_data))/size(F_data))/sqrt(exvar_8)
       !----------------------------------------------------------------------
    end function calc_t1
@@ -134,7 +135,7 @@ contains
                  sqrt((F_eavg_8(ii,jj)-F_exavg_8)**2 * (dble(F_data(ii,jj))-avg_8)**2)
          enddo
       enddo
-      F_tstat = log(1.d0 - excor_8/exss_8)
+      F_tstat = log(1.d0 - min(excor_8/exss_8,1d0-epsilon(exss_8)))
       !----------------------------------------------------------------------
    end function calc_r
 
