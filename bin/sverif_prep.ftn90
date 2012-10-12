@@ -24,22 +24,24 @@ program sverif_prep
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
 #include <clib_interface.cdk>
+
+   integer,parameter :: MAX_MEMBERS = 32, LONG_CHAR = 1024, STDOUT = 6, &
+        STDERR = 0, NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
+
    type :: memberdata_T
-      character(len=1024) :: f_S
+      character(len=LONG_CHAR) :: f_S
       real,pointer :: d(:,:,:)
-      integer :: ni,nj
-      real(RDOUBLE) :: xsum_8,nbpts_8
    end type memberdata_T
 
-   integer,parameter :: MAX_MEMBERS = 32, NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
    character(len=4) :: varname_S
-   character(len=1024) :: ctrl_filename_S,out_dirname_S
-   integer :: istat,level,hour,nentries,nmembers,nn
+   character(len=LONG_CHAR) :: ctrl_filename_S,out_dirname_S
+   integer :: istat,level,hour,nentries,nmembers,nn,ni,nj,niPrev,njPrev
    integer,allocatable :: entries(:,:)
    real :: scale
    real(RDOUBLE) :: exavg0_8,gss0_8
    real, dimension(:,:,:), allocatable :: flds0
    real(RDOUBLE),dimension(:,:),allocatable :: tstat,evar0_8,eavg0_8
+   real, dimension(:,:,:), allocatable :: mdata
    type(memberdata_T) :: members(MAX_MEMBERS)
    type(rng_t), dimension(:), allocatable :: rng
    !----------------------------------------------------------------------
@@ -47,49 +49,54 @@ program sverif_prep
    ! Read inputs to program (arguments, control file and data)
    istat = parse_args(varname_S,level,hour,ctrl_filename_S,out_dirname_S)
    if (.not.RMN_IS_OK(istat)) stop
-   print *,trim(varname_S),level,hour,trim(ctrl_filename_S)
+   write(STDOUT,*) trim(varname_S),level,hour,trim(ctrl_filename_S)
    istat = read_control_file(ctrl_filename_S)
    if (.not.RMN_IS_OK(istat)) stop
-   print *,'nentries, nmembers',nentries,nmembers
+   write(STDOUT,*) 'nentries, nmembers',nentries,nmembers
    calc_nmembers = nmembers
    do nn=1,nmembers
-      print *,nn,':',trim(members(nn)%f_S)
+      write(STDOUT,*) nn,':',trim(members(nn)%f_S)
       istat = min(calc_read(members(nn)%d,members(nn)%f_S,varname_S,level,hour),istat)
-      if (RMN_IS_OK(istat)) istat = min(prep_members(members(nn)%d,members(nn)%ni,members(nn)%nj,members(nn)%nbpts_8,members(nn)%xsum_8),istat)
+      if (.not.RMN_IS_OK(istat)) then
+         write(STDERR,*) '(sverif_prep) Error returned by calc_read'
+         stop
+      endif
+      ni = size(members(nn)%d,dim=1); nj = size(members(nn)%d,dim=2)
+      if (nn > 1) then
+         if (ni /= niPrev .or. nj /= njPrev) then
+            write(STDERR,*) '(sverif_prep) Grid dimension mismatch for '//trim(members(nn)%f_S)
+            stop
+         endif
+      endif
+      niPrev = ni; njPrev = nj
    enddo
-   if (.not.RMN_IS_OK(istat)) stop
 
    ! Allocate space based on input sizes
    allocate(tstat(nentries,NSTAT),stat=istat)
    if (istat /= 0) then
-      write(0,*) '(sverif_prep) Unable to allocate space for basic variables'
+      write(STDERR,*) '(sverif_prep) Unable to allocate space for basic variables'
       stop
    endif
-   allocate(flds0(members(1)%ni,members(1)%nj,nmembers),stat=istat)
+   allocate(flds0(ni,nj,nmembers),stat=istat)
    if (istat /= 0) then
-      write(0,*) '(sverif_prep) Unable to allocate space for fields'
+      write(STDERR,*) '(sverif_prep) Unable to allocate space for fields'
       stop
    endif
    allocate(rng(nentries),stat=istat)
    if (istat /= 0) then
-      write(0,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
+      write(STDERR,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
       stop
    endif
 
    ! Initialize and write unperturbed estimates
-   allocate(eavg0_8(members(1)%ni,members(1)%nj),evar0_8(members(1)%ni,members(1)%nj),stat=istat)
+   allocate(eavg0_8(ni,nj),evar0_8(ni,nj),stat=istat)
+   evar0_8 = -1.
    if (istat /= 0) then
-      write(0,*) '(sverif_prep) Unable to allocate space for first-entry fields'
+      write(STDERR,*) '(sverif_prep) Unable to allocate space for first-entry fields'
       stop
    endif
    call rng_seed(rng(1),932118)
    istat = prep_entry(1,evar0_8,0.,rng(1),exavg0_8,eavg0_8,gss0_8,evar0_8,dump=.true.)
-
-   ! Compute variance of the full sample for inflation
-   do nn=1,nmembers
-      flds0(:,:,nn) = members(nn)%d(:,:,1)
-   enddo
-   istat = calc_var(flds0,evar0_8)
 
    ! Compute test statistics for each sample entry
 !$omp parallel private(istat)
@@ -265,30 +272,6 @@ contains
    end function write_ens_stats
 
    !/*
-   function prep_members(F_data,F_ni,F_nj,F_nbpts_8,F_xsum_8) result(F_istat)
-      implicit none
-      real,pointer :: F_data(:,:,:)
-      integer,intent(out) :: F_ni,F_nj
-      real(RDOUBLE),intent(out) :: F_nbpts_8,F_xsum_8
-      integer :: F_istat
-      !*/
-      integer :: ii,jj
-      !----------------------------------------------------------------------
-      F_istat = RMN_OK
-      F_ni = size(F_data,1)
-      F_nj = size(F_data,2)
-      F_nbpts_8 = dble(size(F_data))
-      F_xsum_8 = 0.d0
-      do jj=1,F_nj
-         do ii=1,F_ni
-            F_xsum_8 = F_xsum_8 + dble(F_data(ii,jj,1))
-         enddo
-      enddo
-      !----------------------------------------------------------------------
-      return
-   end function prep_members
-
-   !/*
    function test_entry(F_entry,F_evar0_8,F_scale,F_rng,F_tstat) result(F_istat)
       use rng_mod, only: rng_t
       implicit none
@@ -301,36 +284,34 @@ contains
       !*/
       integer :: err
       real(RDOUBLE) :: exavg_8,gss_8
-      real(RDOUBLE), dimension(members(1)%ni,members(1)%nj) :: eavg_8,evar_8
+      real(RDOUBLE), dimension(size(F_evar0_8,dim=1),size(F_evar0_8,dim=2)) :: eavg_8,evar_8
       !----------------------------------------------------------------------
       F_istat = RMN_ERR
       !#      test member number    is in entries(F_entry,0)
       !#      control members list  is in entries(F_entry,1:nmembers)
       F_istat = prep_entry(F_entry,F_evar0_8,F_scale,F_rng,exavg_8,eavg_8,gss_8,evar_8)
       if (F_istat /= RMN_OK) then
-         write(0,*) 'Error returned by prep_entry'
+         write(STDERR,*) 'Error returned by prep_entry'
          return
       endif
       F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss0_8,gss_8,F_tstat(T1))
       if (F_istat /= RMN_OK) then
-         write(0,*) 'Error returned by calc_t1'
+         write(STDERR,*) 'Error returned by calc_t1'
          return
       endif
       F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT1))
-!!$      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT1)) !works, but...
       if (F_istat /= RMN_OK) then
-         write(0,*) 'Error returned by calc_nt(1)'
+         write(STDERR,*) 'Error returned by calc_nt(1)'
          return
       endif
       F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT5))
-!!$      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,F_evar0_8,F_tstat(NT5)) !works, but...
       if (F_istat /= RMN_OK) then
-         write(0,*) 'Error returned by calc_nt(5)'
+         write(STDERR,*) 'Error returned by calc_nt(5)'
          return
       endif
       F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg_8,eavg_8,F_tstat(R))
       if (F_istat /= RMN_OK) then
-         write(0,*) 'Error returned by calc_r'
+         write(STDERR,*) 'Error returned by calc_r'
          return
       endif
       !----------------------------------------------------------------------
@@ -407,7 +388,7 @@ contains
       if (myDump) then
          F_istat = write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8)
          if (F_istat /= RMN_OK) then
-            write(0,*) 'Error returned by write_ens_stats'
+            write(STDERR,*) 'Error returned by write_ens_stats'
             return
          endif
       endif
@@ -431,6 +412,7 @@ contains
      real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: rnd
      real(RDOUBLE), dimension(size(F_data,dim=1),size(F_data,dim=2)) :: sd_8
      F_istat = RMN_OK
+
      to_perturb: if (F_scale < epsilon(F_scale)) then
         F_perturb_data_8 = dble(F_data)
      else

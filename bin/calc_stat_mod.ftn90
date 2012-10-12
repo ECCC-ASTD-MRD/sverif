@@ -81,38 +81,6 @@ contains
       return
    end function calc_read
 
-   function calc_var(F_data,F_var_8) result(F_istat)
-     implicit none
-     real, dimension(:,:,:), intent(in) :: F_data
-     real(RDOUBLE), dimension(:,:), intent(out) :: F_var_8
-     integer :: F_istat
-     !*/
-     integer :: imember,ii,jj,ni,nj
-     real(RDOUBLE), dimension(size(F_data,dim=1),size(F_data,dim=2)) :: eavg_8
-     ni = size(F_data,dim=1)
-     nj = size(F_data,dim=2)
-     ! Compute the ensemble variance
-     eavg_8 = 0.d0
-     do imember=1,calc_nmembers
-        do jj=1,nj
-            do ii=1,ni
-               eavg_8(ii,jj) = eavg_8(ii,jj) + dble(F_data(ii,jj,imember))
-            enddo
-         enddo
-      enddo
-      eavg_8 = eavg_8 / dble(calc_nmembers)
-      F_var_8 = 0.d0
-      do imember=1,calc_nmembers
-         do jj=1,nj
-            do ii=1,ni
-               F_var_8(ii,jj) = F_var_8(ii,jj) + (dble(F_data(ii,jj,imember)) - eavg_8(ii,jj))**2
-            enddo
-         enddo
-      enddo
-      F_var_8 = F_var_8 / dble(calc_nmembers)
-      return
-   end function calc_var
-
    !/*
    function calc_t1(F_data,F_exavg_8,F_gss0_8,F_gss_8,F_tstat) result(F_istat)
       implicit none
