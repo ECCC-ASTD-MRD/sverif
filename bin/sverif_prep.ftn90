@@ -76,22 +76,14 @@ program sverif_prep
       stop
    endif
 
-   
-
-
-
-
+   ! Initialize and write unperturbed estimates
    allocate(eavg0_8(members(1)%ni,members(1)%nj),evar0_8(members(1)%ni,members(1)%nj),stat=istat)
    if (istat /= 0) then
       write(0,*) '(sverif_prep) Unable to allocate space for first-entry fields'
       stop
    endif
    call rng_seed(rng(1),932118)
-   istat = prep_entry(1,evar0_8,0.,rng(1),exavg0_8,eavg0_8,gss0_8,evar0_8)
-
-
-
-
+   istat = prep_entry(1,evar0_8,0.,rng(1),exavg0_8,eavg0_8,gss0_8,evar0_8,dump=.true.)
 
    ! Compute variance of the full sample for inflation
    do nn=1,nmembers
@@ -346,7 +338,7 @@ contains
    end function test_entry
 
    !/*
-   function prep_entry(F_entry,F_evar0_8,F_scale,F_rng,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
+   function prep_entry(F_entry,F_evar0_8,F_scale,F_rng,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8,dump) result(F_istat)
       implicit none
       integer, intent(in) :: F_entry
       real(RDOUBLE), dimension(:,:), intent(in) :: F_evar0_8
@@ -354,12 +346,16 @@ contains
       type(rng_t), intent(inout) :: F_rng
       real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
       real(RDOUBLE), dimension(:,:), intent(out) :: F_eavg_8,F_evar_8
+      logical, intent(in), optional :: dump
       integer :: F_istat
       !*/
       integer :: imember,ii,jj,ni,nj
       real(RDOUBLE), dimension(size(F_evar_8,dim=1),size(F_evar_8,dim=2),nmembers) :: data
+      logical :: myDump
       !----------------------------------------------------------------------
       F_istat = RMN_OK
+      myDump = .false.
+      if (present(dump)) myDump = dump
       ni = size(F_eavg_8,dim=1)
       nj = size(F_eavg_8,dim=2)
 
@@ -408,7 +404,7 @@ contains
       enddo
       F_evar_8 = F_evar_8/dble(nmembers)
       ! Dump results for first (ordered) vector
-      if (F_entry == 1) then
+      if (myDump) then
          F_istat = write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8)
          if (F_istat /= RMN_OK) then
             write(0,*) 'Error returned by write_ens_stats'
