@@ -3,7 +3,7 @@ module calc_stat_mod
    use base_stats_mod, only: tTest
    implicit none
    private
-   public :: calc_filename,calc_read,calc_var,calc_t1, calc_r, calc_nt
+   public :: calc_filename,calc_read,calc_t1, calc_r, calc_nt
 
 #include <msg.h>
 #include <arch_specific.hf>
