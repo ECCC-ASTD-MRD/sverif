@@ -1,6 +1,6 @@
 !/*
 program sverif_prep
-   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,calc_var
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
    use rng_mod, only: rng_t,rng_seed
    implicit none
    !@objective 
