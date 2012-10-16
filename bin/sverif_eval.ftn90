@@ -145,7 +145,6 @@ contains
       return
    end function parse_args
 
-
    !/*
    function read_control_file(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8,F_inflation) result(F_istat)
       implicit none
@@ -159,13 +158,14 @@ contains
       !*/
       character(len=1024) :: filename_S,line_S
       character(len=4) :: varname0_S, varname_S
-      integer :: level, hour, istat, fileid,ii,jj,ii1,jj1,idx,i_ci
+      integer :: level, hour, istat, fileid, auxid, ii,jj,ii1,jj1,idx,i_ci
       logical :: isfound
       real(RDOUBLE) :: v1_8,v2_8
       !----------------------------------------------------------------------
+
+      ! Open precomputed statistics file for reading
       F_istat = calc_filename(filename_S,'pre',F_varname_S,F_level,F_hour)
       filename_S = trim(F_dirname_S)//'/'//trim(filename_S)
-
       F_istat = clib_isfile(trim(filename_S))
       F_istat = min(clib_isreadok(trim(filename_S)),F_istat)
       if (.not.RMN_IS_OK(F_istat)) then
@@ -179,6 +179,23 @@ contains
          return
       endif
 
+      ! Open auxiliary file for reading
+      F_istat = calc_filename(filename_S,'aux',F_varname_S,F_level,F_hour)
+      filename_S = trim(F_dirname_S)//'/'//trim(filename_S)
+      F_istat = clib_isfile(trim(filename_S))
+      F_istat = min(clib_isreadok(trim(filename_S)),F_istat)
+      if (.not.RMN_IS_OK(F_istat)) then
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Control File not found or not readable: '//trim(filename_S)
+         return
+      endif
+      auxid = 0
+      F_istat = fnom(auxid,filename_S,'SEQ/FMT+R/O+OLD',0)
+      if (.not.RMN_IS_OK(F_istat) .or. auxid <= 0) then
+         write(RMN_STDERR,*) '(sverif_eval) ERROR: Problem opening Control file: '//trim(filename_S)
+         return
+      endif
+
+      ! Read in header and gridded data from precomputed statistics file
       read(fileid,*) varname_S,level,hour
       read(fileid,*) F_nmembers,F_ni,F_nj
       read(fileid,*) F_exavg_8,F_gss_8
@@ -189,7 +206,8 @@ contains
          enddo
       enddo
 
-      read(fileid,'(a)') line_S
+      ! Read in basic text information from auxiliary file
+      read(auxid,'(a)') line_S
       read(line_S,*) F_nci
       if (F_nci > MAX_CI) then
          F_istat = RMN_ERR
@@ -197,31 +215,31 @@ contains
          return
       endif
       read(line_S,*) F_nci,F_params_8(1:F_nci,CI)
- 
       do i_ci=1,F_nci
-         read(fileid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1_8,v2_8
          idx = min(max(1,idx),F_nci)
          F_params_8(idx,MIN_T1) = v1_8; F_params_8(idx,MAX_T1) = v2_8
       enddo
       do i_ci=1,F_nci
-         read(fileid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1_8,v2_8
          idx = min(max(1,idx),F_nci)
          F_params_8(idx,MIN_NT1) = v1_8; F_params_8(idx,MAX_NT1) = v2_8
       enddo
       do i_ci=1,F_nci
-         read(fileid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1_8,v2_8
          idx = min(max(1,idx),F_nci)
          F_params_8(idx,MIN_NT5) = v1_8; F_params_8(idx,MAX_NT5) = v2_8
       enddo
       do i_ci=1,F_nci
-         read(fileid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1_8,v2_8
          idx = min(max(1,idx),F_nci)
          F_params_8(idx,MIN_R) = v1_8; F_params_8(idx,MAX_R) = v2_8
       enddo
-
-      read(fileid,*) F_inflation
+      read(auxid,*) F_inflation
       
+      ! Close files and return
       istat = fclos(fileid)
+      istat = fclos(auxid)
       !----------------------------------------------------------------------
       return
    end function read_control_file

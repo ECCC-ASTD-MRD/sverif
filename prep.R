@@ -37,18 +37,18 @@ system(paste("sverif_prep.Abs",var,lev,prog,file.in,statpath))
 # Retrieve return file and ensemble statistics file
 t.stats<-read.table(paste(statpath,system(paste("sverif_fname.Abs tstat",var,lev,prog),intern=TRUE),sep='/'),header=FALSE)
 colnames(t.stats)<-c("T1","NT1","NT5","R")
-file.ens<-paste(statpath,system(paste("sverif_fname.Abs pre",var,lev,prog),intern=TRUE),sep='/')
+file.aux<-paste(statpath,system(paste("sverif_fname.Abs aux",var,lev,prog),intern=TRUE),sep='/')
 
 # Retrieve T1 statistic results
-cinterval(file.ens,t.stats,"T1",ci.bounds,init=TRUE)
+cinterval(file.aux,t.stats,"T1",ci.bounds,init=TRUE)
 
 # Retrieve NT statistic results
-cinterval(file.ens,t.stats,"NT1",ci.bounds)
-cinterval(file.ens,t.stats,"NT5",ci.bounds)
+cinterval(file.aux,t.stats,"NT1",ci.bounds)
+cinterval(file.aux,t.stats,"NT5",ci.bounds)
 
 # Retrieve R statistic results
-cinterval(file.ens,t.stats,"R",ci.bounds)
+cinterval(file.aux,t.stats,"R",ci.bounds)
 
 # Add inflation information to ensemble file
-write(inflation,file=file.ens,append=TRUE)
+write(inflation,file=file.aux,append=TRUE)
 

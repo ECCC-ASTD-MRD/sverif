@@ -34,8 +34,10 @@ contains
          prefix_S = 'sverif-precalc_'
       case ('tstat')
          prefix_S = 'sverif-tstats_'
+      case ('aux')
+         prefix_S = 'sverif-aux_'
       case DEFAULT
-         call msg(MSG_ERROR,'(calc_stat_mod) Unknown class '//trim(F_class_S)//' ... use "pre" or "tstat"')
+         call msg(MSG_ERROR,'(calc_stat_mod) Unknown class '//trim(F_class_S)//' ... use "pre", "tstat" or "aux"')
          return
       end select
       varname_S = F_varname_S
