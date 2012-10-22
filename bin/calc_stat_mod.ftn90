@@ -166,7 +166,7 @@ contains
       norm = sqrt(dble(calc_nmembers-1))
       do jj=1,nj
          do ii=1,ni
-            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)))
+            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(max(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)),epsilon(F_evar_8)))
          enddo
       enddo
       pfld => tTest(tfld,2*(calc_nmembers-1))
