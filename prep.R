@@ -14,7 +14,7 @@ dfiles<-args[(9+ci.number):length(args)]
 # Utility functions
 cinterval<-function(file.out,t.stat,t.name,bounds,init=FALSE){
   pde<-t.stat[sort.list(t.stat[[t.name]]),t.name]
-  if (init){write(c(length(bounds),bounds),file=file.out,append=TRUE)}
+  if (init){write(c(length(bounds),bounds),file=file.out)}
   for (i in 1:length(bounds)){
     indx<-max(round(bounds[i]*nboot,digits=0),1)
     write(sprintf("%i %8.16f %8.16f",i,pde[indx],pde[nboot-indx]),file=file.out,append=TRUE)
