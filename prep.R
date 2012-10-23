@@ -32,6 +32,7 @@ for (i in 1:(nboot-1)){
 }
 
 # Run ftn code to compute test statistics
+unlink(paste(statpath,system(paste("sverif_fname.Abs pre",var,lev,prog),intern=TRUE),sep='/'))
 system(paste("sverif_prep.Abs",var,lev,prog,file.in,statpath))
 
 # Retrieve return file and ensemble statistics file
