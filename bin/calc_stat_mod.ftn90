@@ -86,12 +86,12 @@ contains
 
 
    !/*
-   function calc_ens_pak(F_pakdata_8,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8) result(F_istat)
+   function calc_ens_pak(F_pakdata,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg,F_gss) result(F_istat)
       implicit none
-      real(RDOUBLE), intent(out) :: F_pakdata_8(CALC_ENSPAK_SIZE)
+      real, intent(out) :: F_pakdata(CALC_ENSPAK_SIZE)
       character(len=*), intent(in) :: F_varname_S
       integer, intent(in) :: F_level,F_hour,F_ni,F_nj,F_nmembers
-      real(RDOUBLE), intent(in) :: F_exavg_8,F_gss_8
+      real, intent(in) :: F_exavg,F_gss
       integer :: F_istat
       !*/
       character(len=4) :: varanme_S
@@ -100,14 +100,14 @@ contains
       F_istat = RMN_ERR
       varanme_S = F_varname_S
       ivarname = transfer(varanme_S,ivarname)
-      F_pakdata_8(1) = dble(F_ni)
-      F_pakdata_8(2) = dble(F_nj)
-      F_pakdata_8(3) = dble(ivarname)
-      F_pakdata_8(4) = dble(F_level)
-      F_pakdata_8(5) = dble(F_hour)
-      F_pakdata_8(6) = dble(F_nmembers)
-      F_pakdata_8(7) = F_exavg_8
-      F_pakdata_8(8) = F_gss_8
+      F_pakdata(1) = F_ni
+      F_pakdata(2) = F_nj
+      F_pakdata(3) = ivarname
+      F_pakdata(4) = F_level
+      F_pakdata(5) = F_hour
+      F_pakdata(6) = F_nmembers
+      F_pakdata(7) = F_exavg
+      F_pakdata(8) = F_gss
       F_istat = RMN_OK
      !----------------------------------------------------------------------
       return
@@ -115,28 +115,28 @@ contains
 
 
    !/*
-   function calc_ens_unpak(F_pakdata_8,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8) result(F_istat)
+   function calc_ens_unpak(F_pakdata,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg,F_gss) result(F_istat)
       implicit none
-      real(RDOUBLE), intent(in) :: F_pakdata_8(CALC_ENSPAK_SIZE)
+      real, intent(in) :: F_pakdata(CALC_ENSPAK_SIZE)
       character(len=*), intent(out) :: F_varname_S
       integer, intent(out) :: F_level,F_hour,F_ni,F_nj,F_nmembers
-      real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
+      real, intent(out) :: F_exavg,F_gss
       integer :: F_istat
       !*/
       character(len=4) :: varanme_S
       integer :: ivarname
       !----------------------------------------------------------------------
       F_istat = RMN_ERR
-      F_ni = nint(F_pakdata_8(1))
-      F_nj = nint(F_pakdata_8(2))
-      ivarname = nint(F_pakdata_8(3))
+      F_ni = nint(F_pakdata(1))
+      F_nj = nint(F_pakdata(2))
+      ivarname = nint(F_pakdata(3))
       varanme_S = transfer(ivarname,varanme_S)
       F_varname_S = varanme_S
-      F_level = nint(F_pakdata_8(4))
-      F_hour = nint(F_pakdata_8(5))
-      F_nmembers = nint(F_pakdata_8(6))
-      F_exavg_8 = F_pakdata_8(7)
-      F_gss_8 = F_pakdata_8(8)
+      F_level = nint(F_pakdata(4))
+      F_hour = nint(F_pakdata(5))
+      F_nmembers = nint(F_pakdata(6))
+      F_exavg = F_pakdata(7)
+      F_gss = F_pakdata(8)
       F_istat = RMN_OK
       !----------------------------------------------------------------------
       return
@@ -144,15 +144,15 @@ contains
 
 
    !/*
-   function calc_t1(F_data,F_exavg_8,F_gss0_8,F_gss_8,F_tstat) result(F_istat)
+   function calc_t1(F_data,F_exavg,F_gss0,F_gss,F_tstat) result(F_istat)
       implicit none
       real, dimension(:,:), intent(in) :: F_data
-      real(RDOUBLE), intent(in) :: F_exavg_8,F_gss0_8,F_gss_8
-      real(RDOUBLE), intent(out) :: F_tstat
+      real, intent(in) :: F_exavg,F_gss0,F_gss
+      real, intent(out) :: F_tstat
       integer :: F_istat
       !*/
       integer :: ii,jj
-      real(RDOUBLE) :: exvar_8,rni,rnj,rnt
+      real :: rni,rnj,rnt
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
@@ -160,25 +160,22 @@ contains
          return
       endif
       F_istat = RMN_OK
-      rni = dble(size(F_data,dim=1))
-      rnj = dble(size(F_data,dim=2))
-      rnt = dble(calc_nmembers)
-      exvar_8 = (F_gss_8+F_gss0_8)/(rni*rnj*rnt*(rni*rnj*rnt-1d0))
-      F_tstat = (F_exavg_8 - sum(dble(F_data))/size(F_data))/sqrt(exvar_8)
+      F_tstat = (F_exavg - sum(F_data)/size(F_data))/sqrt(F_gss+F_gss0)
       !----------------------------------------------------------------------
    end function calc_t1
 
    !/*
-   function calc_r(F_data,F_exavg_8,F_eavg_8,F_tstat) result(F_istat)
+   function calc_r(F_data,F_exavg,F_eavg,F_tstat) result(F_istat)
       implicit none
       real, dimension(:,:), intent(in) :: F_data
-      real(RDOUBLE), intent(in) :: F_exavg_8
-      real(RDOUBLE), dimension(:,:), intent(in) :: F_eavg_8
-      real(RDOUBLE), intent(out) :: F_tstat
+      real, intent(in) :: F_exavg
+      real, dimension(:,:), intent(in) :: F_eavg
+      real, intent(out) :: F_tstat
       integer :: F_istat
       !*/
       integer :: ii,jj
-      real(RDOUBLE) :: avg_8,exss_8,excor_8
+      real :: avg
+      real(RDOUBLE) :: exss_8,excor_8
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
@@ -186,32 +183,32 @@ contains
          return
       endif
       F_istat = RMN_OK
-      avg_8 = (sum(dble(F_data))/size(F_data))
-      excor_8 = 0.
-      exss_8 = 0.
+      avg = (sum(F_data)/size(F_data))
+      excor_8 = 0.d0
+      exss_8 = 0.d0
       do jj=1,size(F_data,dim=2)
          do ii=1,size(F_data,dim=1)
             excor_8 = excor_8 + &
-                 (F_eavg_8(ii,jj)-F_exavg_8)*(dble(F_data(ii,jj))-avg_8)
+                 dble(F_eavg(ii,jj)-F_exavg)*dble(F_data(ii,jj)-avg)
             exss_8 = exss_8 + &
-                 sqrt((F_eavg_8(ii,jj)-F_exavg_8)**2 * (dble(F_data(ii,jj))-avg_8)**2)
+                 sqrt(dble(F_eavg(ii,jj)-F_exavg)**2 * dble(F_data(ii,jj)-avg)**2)
          enddo
       enddo
-      F_tstat = log(1.d0 - min(excor_8/exss_8,1d0-epsilon(exss_8)))
+      F_tstat = real(log(1. - min(excor_8/exss_8,1.-epsilon(exss_8))))
       !----------------------------------------------------------------------
    end function calc_r
 
    !/*
-   function calc_nt(F_crit,F_data,F_eavg_8,F_evar0_8,F_evar_8,F_tstat) result(F_istat)
+   function calc_nt(F_crit,F_data,F_eavg,F_evar0,F_evar,F_tstat) result(F_istat)
       implicit none
       real, intent(in) :: F_crit
       real, dimension(:,:), intent(in) :: F_data
-      real(RDOUBLE), dimension(:,:), intent(in) :: F_eavg_8,F_evar0_8,F_evar_8
-      real(RDOUBLE), intent(out) :: F_tstat
+      real, dimension(:,:), intent(in) :: F_eavg,F_evar0,F_evar
+      real, intent(out) :: F_tstat
       integer :: F_istat
       !*/
       integer :: ii,jj,ni,nj,cnt
-      real(RDOUBLE) :: norm
+      real :: norm
       real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: tfld
       real, dimension(:,:), pointer :: pfld=>null()
       !----------------------------------------------------------------------
@@ -223,10 +220,10 @@ contains
       F_istat = RMN_OK
       ni = size(F_data,dim=1)
       nj = size(F_data,dim=2)
-      norm = sqrt(dble(calc_nmembers-1))
+      norm = sqrt(real(calc_nmembers-1))
       do jj=1,nj
          do ii=1,ni
-            tfld(ii,jj) = norm * (F_eavg_8(ii,jj) - dble(F_data(ii,jj))) / sqrt(max(0.5*(F_evar_8(ii,jj)+F_evar0_8(ii,jj)),epsilon(F_evar_8)))
+            tfld(ii,jj) = norm * (F_eavg(ii,jj) - F_data(ii,jj)) / sqrt(max(0.5*(F_evar(ii,jj)+F_evar0(ii,jj)),epsilon(F_evar)))
          enddo
       enddo
       pfld => tTest(tfld,2*(calc_nmembers-1))

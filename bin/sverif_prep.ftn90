@@ -38,9 +38,9 @@ program sverif_prep
    integer :: istat,level,hour,nentries,nmembers,nn,ni,nj,niPrev,njPrev
    integer,allocatable :: entries(:,:)
    real :: scale
-   real(RDOUBLE) :: exavg0_8,gss0_8
+   real :: exavg0,gss0
    real, dimension(:,:,:), allocatable :: flds0
-   real(RDOUBLE),dimension(:,:),allocatable :: tstat,evar0_8,eavg0_8
+   real,dimension(:,:),allocatable :: tstat,evar0,eavg0
    real, dimension(:,:,:), allocatable :: mdata
    type(memberdata_T) :: members(MAX_MEMBERS)
    type(rng_t), dimension(:), allocatable :: rng
@@ -89,21 +89,21 @@ program sverif_prep
    endif
 
    ! Initialize and write unperturbed estimates
-   allocate(eavg0_8(ni,nj),evar0_8(ni,nj),stat=istat)
-   evar0_8 = -1.
+   allocate(eavg0(ni,nj),evar0(ni,nj),stat=istat)
+   evar0 = -1.
    if (istat /= 0) then
       write(STDERR,*) '(sverif_prep) Unable to allocate space for first-entry fields'
       stop
    endif
    call rng_seed(rng(1),932118)
-   istat = prep_entry(1,evar0_8,0.,rng(1),exavg0_8,eavg0_8,gss0_8,evar0_8,dump=.true.)
+   istat = prep_entry(1,evar0,0.,rng(1),exavg0,eavg0,gss0,evar0,dump=.true.)
 
    ! Compute test statistics for each sample entry
 !$omp parallel private(istat)
 !$omp do
    do nn=1,nentries
       call rng_seed(rng(nn),932117+nn)  !create thread-safe random number seeds
-      istat = test_entry(nn,evar0_8,scale,rng(nn),tstat(nn,:))
+      istat = test_entry(nn,evar0,scale,rng(nn),tstat(nn,:))
    enddo
 !$omp enddo
 !$omp end parallel
@@ -221,7 +221,7 @@ contains
    !/*
    function write_tstat_file(F_tstat) result(F_istat)
       implicit none
-      real(RDOUBLE),dimension(:,:),intent(in) :: F_tstat
+      real,dimension(:,:),intent(in) :: F_tstat
       integer :: F_istat
       !*/
       integer :: fd,nn
@@ -244,36 +244,36 @@ contains
 
 
    !/*
-   function write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
+   function write_ens_stats(F_exavg,F_eavg,F_gss,F_evar) result(F_istat)
      implicit none
-     real(RDOUBLE),intent(in) :: F_exavg_8,F_gss_8
-     real(RDOUBLE),dimension(:,:),intent(in) :: F_eavg_8,F_evar_8
+     real,intent(in) :: F_exavg,F_gss
+     real,dimension(:,:),intent(in) :: F_eavg,F_evar
      integer :: F_istat
      !*/
      integer, external :: fst_data_length
      integer, parameter :: MYNPAK = -32
-     real(RDOUBLE) :: pakdata_8(CALC_ENSPAK_SIZE)
+     real :: pakdata(CALC_ENSPAK_SIZE)
      integer :: fd,istat,ni,nj
      character(len=1024) :: filename_S,filepath_S
     !----------------------------------------------------------------------
      F_istat = RMN_OK
      F_istat = calc_filename(filename_S,'pre',varname_S,level,hour)
      filepath_S = trim(out_dirname_S)//'/'//trim(filename_S)
-     ni = size(F_evar_8,1)
-     nj = size(F_evar_8,2)
-     F_istat = calc_ens_pak(pakdata_8,varname_S,level,hour,ni,nj,nmembers,F_exavg_8,F_gss_8)
+     ni = size(F_evar,1)
+     nj = size(F_evar,2)
+     F_istat = calc_ens_pak(pakdata,varname_S,level,hour,ni,nj,nmembers,F_exavg,F_gss)
      fd = 0
      istat = fnom(fd,trim(filepath_S),'RND+R/W',0)
      istat = fstouv(fd,'RND')
-     istat = fstecr(pakdata_8,pakdata_8,MYNPAK,fd,0,0,0, &
-              size(pakdata_8),1,1,level,hour,0,' ',varname_S,' ', &
-              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
-     istat = fstecr(F_eavg_8,F_eavg_8,MYNPAK,fd,0,0,0, &
+     istat = fstecr(pakdata,pakdata,MYNPAK,fd,0,0,0, &
+              size(pakdata),1,1,level,hour,0,' ',varname_S,' ', &
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(4),.true.)
+     istat = fstecr(F_eavg,F_eavg,MYNPAK,fd,0,0,0, &
               ni,nj,1,level,hour,0,' ','eavg',' ', &
-              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
-     istat = fstecr(F_evar_8,F_evar_8,MYNPAK,fd,0,0,0, &
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(4),.true.)
+     istat = fstecr(F_evar,F_evar,MYNPAK,fd,0,0,0, &
               ni,nj,1,level,hour,0,' ','evar',' ', &
-              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(4),.true.)
      istat = fstfrm(fd)
      istat = fclos(fd)
     return
@@ -281,44 +281,44 @@ contains
 
 
    !/*
-   function test_entry(F_entry,F_evar0_8,F_scale,F_rng,F_tstat) result(F_istat)
+   function test_entry(F_entry,F_evar0,F_scale,F_rng,F_tstat) result(F_istat)
       use rng_mod, only: rng_t
       implicit none
       integer, intent(in) :: F_entry
       real, intent(in) :: F_scale
       type(rng_t), intent(inout) :: F_rng
-      real(RDOUBLE), dimension(:,:), intent(in) :: F_evar0_8
-      real(RDOUBLE), dimension(:), intent(out) :: F_tstat
+      real, dimension(:,:), intent(in) :: F_evar0
+      real, dimension(:), intent(out) :: F_tstat
       integer :: F_istat
       !*/
       integer :: err
-      real(RDOUBLE) :: exavg_8,gss_8
-      real(RDOUBLE), dimension(size(F_evar0_8,dim=1),size(F_evar0_8,dim=2)) :: eavg_8,evar_8
+      real :: exavg,gss
+      real, dimension(size(F_evar0,dim=1),size(F_evar0,dim=2)) :: eavg,evar
       !----------------------------------------------------------------------
       F_istat = RMN_ERR
       !#      test member number    is in entries(F_entry,0)
       !#      control members list  is in entries(F_entry,1:nmembers)
-      F_istat = prep_entry(F_entry,F_evar0_8,F_scale,F_rng,exavg_8,eavg_8,gss_8,evar_8)
+      F_istat = prep_entry(F_entry,F_evar0,F_scale,F_rng,exavg,eavg,gss,evar)
       if (F_istat /= RMN_OK) then
          write(STDERR,*) 'Error returned by prep_entry'
          return
       endif
-      F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg_8,gss0_8,gss_8,F_tstat(T1))
+      F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg,gss0,gss,F_tstat(T1))
       if (F_istat /= RMN_OK) then
          write(STDERR,*) 'Error returned by calc_t1'
          return
       endif
-      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT1))
+      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT1))
       if (F_istat /= RMN_OK) then
          write(STDERR,*) 'Error returned by calc_nt(1)'
          return
       endif
-      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg_8,evar0_8,evar_8,F_tstat(NT5))
+      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT5))
       if (F_istat /= RMN_OK) then
          write(STDERR,*) 'Error returned by calc_nt(5)'
          return
       endif
-      F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg_8,eavg_8,F_tstat(R))
+      F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg,eavg,F_tstat(R))
       if (F_istat /= RMN_OK) then
          write(STDERR,*) 'Error returned by calc_r'
          return
@@ -328,74 +328,89 @@ contains
    end function test_entry
 
    !/*
-   function prep_entry(F_entry,F_evar0_8,F_scale,F_rng,F_exavg_8,F_eavg_8,F_gss_8,F_evar_8,dump) result(F_istat)
+   function prep_entry(F_entry,F_evar0,F_scale,F_rng,F_exavg,F_eavg,F_gss,F_evar,dump) result(F_istat)
       implicit none
       integer, intent(in) :: F_entry
-      real(RDOUBLE), dimension(:,:), intent(in) :: F_evar0_8
+      real, dimension(:,:), intent(in) :: F_evar0
       real, intent(in) :: F_scale
       type(rng_t), intent(inout) :: F_rng
-      real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
-      real(RDOUBLE), dimension(:,:), intent(out) :: F_eavg_8,F_evar_8
+      real, intent(out) :: F_exavg,F_gss
+      real, dimension(:,:), intent(out) :: F_eavg,F_evar
       logical, intent(in), optional :: dump
       integer :: F_istat
       !*/
       integer :: imember,ii,jj,ni,nj
-      real(RDOUBLE), dimension(size(F_evar_8,dim=1),size(F_evar_8,dim=2),nmembers) :: data
+      real(RDOUBLE) :: exavg_8,gss_8,rni,rnj,rnt
+      real(RDOUBLE), dimension(size(F_eavg,dim=1),size(F_eavg,dim=2)) :: eavg_8,evar_8
+      real(RDOUBLE), dimension(size(F_eavg,dim=1),size(F_eavg,dim=2),nmembers) :: data
       logical :: myDump
       !----------------------------------------------------------------------
       F_istat = RMN_OK
       myDump = .false.
       if (present(dump)) myDump = dump
-      ni = size(F_eavg_8,dim=1)
-      nj = size(F_eavg_8,dim=2)
+      ni = size(F_eavg,dim=1)
+      nj = size(F_eavg,dim=2)
+      rni = dble(size(F_eavg,dim=1))
+      rnj = dble(size(F_eavg,dim=2))
+      rnt = dble(nmembers)
 
       ! Perturb fields based on a parameteric model
       do imember=1,nmembers
-         F_istat = perturb(members(entries(F_entry,imember))%d(:,:,1),F_evar0_8,F_scale,F_rng,data(:,:,imember))
+         F_istat = perturb(members(entries(F_entry,imember))%d(:,:,1),F_evar0,F_scale,F_rng,data(:,:,imember))
       enddo
 
       ! Compute the ensemble mean value
-      F_exavg_8 = 0.d0
-      do imember=1,nmembers
-         do jj=1,nj
-            do ii=1,ni
-               F_exavg_8 = F_exavg_8 + data(ii,jj,imember)
-            enddo
-         enddo
-      enddo
-      F_exavg_8 = F_exavg_8/(ni*nj*(nmembers))
+      exavg_8 = sum(data)/dble(ni*nj*(nmembers))
+      F_exavg = real(exavg_8)
+
       ! Compute the ensemble mean field
-      F_eavg_8 = 0.d0
-      do imember=1,nmembers
-         do jj=1,nj
-            do ii=1,ni
-               F_eavg_8(ii,jj) = F_eavg_8(ii,jj) + data(ii,jj,imember)
-            enddo
+      eavg_8 = 0.d0
+      do jj=1,nj
+         do ii=1,ni
+            eavg_8(ii,jj) = sum(data(ii,jj,:))
          enddo
       enddo
-      F_eavg_8 = F_eavg_8/dble(nmembers)
+      eavg_8 = eavg_8/dble(nmembers)
+      F_eavg = real(eavg_8)
+
       ! Compute the global sum of squares
-      F_gss_8 = 0.d0
+      gss_8 = 0.d0
       do imember=1,nmembers
          do jj=1,nj
             do ii=1,ni
-               F_gss_8 = F_gss_8 + (data(ii,jj,imember) - F_exavg_8)**2
+               gss_8 = gss_8 + (data(ii,jj,imember) - exavg_8)**2
             enddo
          enddo
       enddo
-      ! Compute the ensemble variance
-      F_evar_8 = 0.d0
+      gss_8 = gss_8/(rni*rnj*rnt*(rni*rnj*rnt-1d0))
+      F_gss = real(gss_8)
+
+      ! Compute the ensemble standard deviation
+      evar_8 = 0.d0
       do imember=1,nmembers
          do jj=1,nj
             do ii=1,ni
-               F_evar_8(ii,jj) = F_evar_8(ii,jj) + (data(ii,jj,imember) - F_eavg_8(ii,jj))**2
+               evar_8(ii,jj) = evar_8(ii,jj) + (data(ii,jj,imember) - eavg_8(ii,jj))**2
             enddo
          enddo
       enddo
-      F_evar_8 = F_evar_8/dble(nmembers)
+
+!!$         do jj=1,nj
+!!$            do ii=1,ni
+!!$               if (evar_8(ii,jj) > 4.) then
+!!$                  print*, ii,jj,data(ii,jj,:)
+!!$                  print*, evar_8(ii,jj),eavg_8(ii,jj)
+!!$                  pause
+!!$               endif
+!!$            enddo
+!!$         enddo
+
+      evar_8 = evar_8/dble(nmembers)
+      F_evar = real(evar_8)
+
       ! Dump results for first (ordered) vector
       if (myDump) then
-         F_istat = write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8)
+         F_istat = write_ens_stats(F_exavg,F_eavg,F_gss,F_evar)
          if (F_istat /= RMN_OK) then
             write(STDERR,*) 'Error returned by write_ens_stats'
             return
@@ -406,31 +421,31 @@ contains
    end function prep_entry
 
    !/*
-   function perturb(F_data,F_var_8,F_scale,F_rng,F_perturb_data_8) result(F_istat)
+   function perturb(F_data,F_var,F_scale,F_rng,F_perturb_data) result(F_istat)
      use rng_mod, only: rng_t,rng_uniform
      ! Select a Gaussian perturbation based on the scaled ensemble variance
      implicit none
      real, dimension(:,:), intent(in) :: F_data
-     real(RDOUBLE), dimension(:,:), intent(in) :: F_var_8
+     real, dimension(:,:), intent(in) :: F_var
      real, intent(in) :: F_scale
      type(rng_t), intent(inout) :: F_rng
-     real(RDOUBLE), dimension(:,:), intent(out) :: F_perturb_data_8
+     real(RDOUBLE), dimension(:,:), intent(out) :: F_perturb_data
      integer :: F_istat
      !*/
      integer :: ii,jj
      real, parameter :: PI=3.14159
      real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: rnd
-     real(RDOUBLE), dimension(size(F_data,dim=1),size(F_data,dim=2)) :: sd_8
+     real, dimension(size(F_data,dim=1),size(F_data,dim=2)) :: sd
      F_istat = RMN_OK
 
      to_perturb: if (F_scale < epsilon(F_scale)) then
-        F_perturb_data_8 = dble(F_data)
+        F_perturb_data = dble(F_data)
      else
-        sd_8 = sqrt(F_var_8)
+        sd = sqrt(F_var)
         do jj=1,size(F_data,dim=2)
            do ii=1,size(F_data,dim=1)
-              F_perturb_data_8(ii,jj) = F_data(ii,jj) + sd_8(ii,jj) * &
-                   dble(F_scale * (3. - 2.*(rng_uniform(F_rng)+rng_uniform(F_rng)+rng_uniform(F_rng))))
+              F_perturb_data(ii,jj) = dble(F_data(ii,jj) + sd(ii,jj) * &
+                   (F_scale * (3. - 2.*(rng_uniform(F_rng)+rng_uniform(F_rng)+rng_uniform(F_rng)))))
            enddo
         enddo
      endif to_perturb

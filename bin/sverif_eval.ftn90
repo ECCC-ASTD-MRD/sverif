@@ -33,17 +33,17 @@ program sverif_eval
    character(len=4) :: varname_S
    integer :: istat,level,hour,nmembers,nci,ni,nj,i_ci
    real :: inflation
-   real(RDOUBLE) :: params_8(MAX_CI,NPARAMS),t1_stat_8,nt1_stat_8,nt5_stat_8,r_stat_8
+   real :: params(MAX_CI,NPARAMS),t1_stat,nt1_stat,nt5_stat,r_stat
    real,pointer :: data(:,:,:),data2d(:,:)
-   real(RDOUBLE),pointer :: eavg_8(:,:),evar_8(:,:)
-   real(RDOUBLE) :: exavg_8,gss_8
+   real,pointer :: eavg(:,:),evar(:,:)
+   real :: exavg,gss
    logical :: isok
    !----------------------------------------------------------------------
    call msg_verbosity(MSG_ERROR)
    istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) stop
 
-   istat = read_ens_stats(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8,inflation)
+   istat = read_ens_stats(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params,exavg,gss,eavg,evar,inflation)
    if (.not.RMN_IS_OK(istat)) stop
 
    calc_nmembers = nmembers
@@ -51,43 +51,43 @@ program sverif_eval
    if (.not.RMN_IS_OK(istat)) stop
    data2d => data(:,:,1)
 
-   istat = calc_t1(data2d,exavg_8,gss_8,gss_8,t1_stat_8)
-   write(RMN_STDOUT,*) 'calc_t1=',t1_stat_8
-   istat = calc_nt(0.01,data2d,eavg_8,evar_8,evar_8,nt1_stat_8)
-   write(RMN_STDOUT,*) 'calc_nt1=',nt1_stat_8
-   istat = calc_nt(0.05,data2d,eavg_8,evar_8,evar_8,nt5_stat_8)
-   write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat_8
-   istat = calc_r(data2d,exavg_8,eavg_8,r_stat_8)
-   write(RMN_STDOUT,*) 'calc_r=',r_stat_8
+   istat = calc_t1(data2d,exavg,gss,gss,t1_stat)
+   write(RMN_STDOUT,*) 'calc_t1=',t1_stat
+   istat = calc_nt(0.01,data2d,eavg,evar,evar,nt1_stat)
+   write(RMN_STDOUT,*) 'calc_nt1=',nt1_stat
+   istat = calc_nt(0.05,data2d,eavg,evar,evar,nt5_stat)
+   write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat
+   istat = calc_r(data2d,exavg,eavg,r_stat)
+   write(RMN_STDOUT,*) 'calc_r=',r_stat
    write(RMN_STDOUT,*) 'inflation=',inflation
 
    do i_ci=1,nci
       isok = .true.
       msg_s = ''
       write(RMN_STDOUT,'(a)') ' '
-      write(msg_S,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params_8(i_ci,CI)),']'
-      if (t1_stat_8 <= params_8(i_ci,MAX_T1) .and. t1_stat_8 >= params_8(i_ci,MIN_T1)) then
+      write(msg_S,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params(i_ci,CI)),']'
+      if (t1_stat <= params(i_ci,MAX_T1) .and. t1_stat >= params(i_ci,MIN_T1)) then
          write(RMN_STDOUT,'(a)') 'PASS T1  '//trim(msg_S)
       else
          write(RMN_STDOUT,'(a)') 'FAIL T1  '//trim(msg_S)
          isok = .false.
       endif
 
-      if (nt1_stat_8 <= params_8(i_ci,MAX_NT1)) then
+      if (nt1_stat <= params(i_ci,MAX_NT1)) then
          write(RMN_STDOUT,'(a)') 'PASS NT1 '//trim(msg_S)
       else
          write(RMN_STDOUT,'(a)') 'FAIL NT1 '//trim(msg_S)
          isok = .false.
       endif
 
-      if (nt5_stat_8 <= params_8(i_ci,MAX_NT5)) then
+      if (nt5_stat <= params(i_ci,MAX_NT5)) then
          write(RMN_STDOUT,'(a)') 'PASS NT5 '//trim(msg_S)
       else
          write(RMN_STDOUT,'(a)') 'FAIL NT5 '//trim(msg_S)
          isok = .false.
       endif
 
-      if (r_stat_8 <= params_8(i_ci,MAX_R)) then
+      if (r_stat <= params(i_ci,MAX_R)) then
          write(RMN_STDOUT,'(a)') 'PASS R   '//trim(msg_S)
       else
          write(RMN_STDOUT,'(a)') 'FAIL R   '//trim(msg_S)
@@ -147,13 +147,13 @@ contains
    end function parse_args
 
    !/*
-   function read_ens_stats(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8,F_inflation) result(F_istat)
+   function read_ens_stats(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params,F_exavg,F_gss,F_eavg,F_evar,F_inflation) result(F_istat)
       implicit none
       character(len=*),intent(in) :: F_dirname_S,F_varname_S
       integer,intent(in) :: F_level,F_hour
       integer,intent(out) :: F_nmembers,F_nci,F_ni,F_nj
-      real(RDOUBLE),intent(out) :: F_params_8(MAX_CI,NPARAMS),F_exavg_8,F_gss_8
-      real(RDOUBLE),pointer :: F_eavg_8(:,:),F_evar_8(:,:)
+      real,intent(out) :: F_params(MAX_CI,NPARAMS),F_exavg,F_gss
+      real,pointer :: F_eavg(:,:),F_evar(:,:)
       real, intent(out) :: F_inflation
       integer :: F_istat
       !*/
@@ -161,8 +161,8 @@ contains
       character(len=4) :: varname0_S, varname_S
       integer :: level, hour, istat, fileid, fd, auxid, ii,jj,ii1,jj1,idx,i_ci,datev,key,ni1,nj1,nk1
       logical :: isfound
-      real(RDOUBLE) :: v1_8,v2_8
-      real(RDOUBLE) :: pakdata_8(CALC_ENSPAK_SIZE)
+      real :: v1,v2
+      real :: pakdata(CALC_ENSPAK_SIZE)
       !----------------------------------------------------------------------
 
       ! Open precomputed statistics file for reading
@@ -201,31 +201,20 @@ contains
       ! Read in header and gridded data from precomputed statistics file
       datev = RMN_ANY_DATE
       key = fst_find(fileid,F_varname_S,datev,F_level,F_hour,RMN_ANY_I)
-      istat = fstluk(pakdata_8,key,ni1,nj1,nk1)
+      istat = fstluk(pakdata,key,ni1,nj1,nk1)
 
-      F_istat = calc_ens_unpak(pakdata_8,varname_S,level,hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8)
+      F_istat = calc_ens_unpak(pakdata,varname_S,level,hour,F_ni,F_nj,F_nmembers,F_exavg,F_gss)
 
-      allocate(F_eavg_8(F_ni,F_nj),F_evar_8(F_ni,F_nj))
+      allocate(F_eavg(F_ni,F_nj),F_evar(F_ni,F_nj))
+      allocate(F_eavg(F_ni,F_nj),F_evar(F_ni,F_nj))
 
       datev = RMN_ANY_DATE
       key = fst_find(fileid,'eavg',datev,F_level,F_hour,RMN_ANY_I)
-      istat = fstluk(F_eavg_8,key,ni1,nj1,nk1)
+      istat = fstluk(F_eavg,key,ni1,nj1,nk1)
 
       datev = RMN_ANY_DATE
       key = fst_find(fileid,'evar',datev,F_level,F_hour,RMN_ANY_I)
-      istat = fstluk(F_evar_8,key,ni1,nj1,nk1)
-
-!!$      fd = 0
-!!$      F_istat = fnom(fd,trim(filename_S)//'2','SEQ/FMT',0)
-!!$      write(fd,'(a,2(x,i))') trim(varname_S),level,hour
-!!$      write(fd,'(3(i,x))') nmembers,ni,nj
-!!$      write(fd,'(2(d,x))') real(F_exavg_8),real(F_gss_8)
-!!$      do jj=1,F_nj
-!!$         do ii=1,F_ni
-!!$            write(fd,'(2(i,x),2(d,x))') ii,jj,real(F_eavg_8(ii,jj)),real(F_evar_8(ii,jj))
-!!$         enddo
-!!$      enddo
-!!$      istat = fclos(fd)
+      istat = fstluk(F_evar,key,ni1,nj1,nk1)
 
       ! Read in basic text information from auxiliary file
       read(auxid,'(a)') line_S
@@ -235,26 +224,26 @@ contains
          write(RMN_STDERR,*) '(sverif_eval) ERROR: Too many CI ',F_nci
          return
       endif
-      read(line_S,*) F_nci,F_params_8(1:F_nci,CI)
+      read(line_S,*) F_nci,F_params(1:F_nci,CI)
       do i_ci=1,F_nci
-         read(auxid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1,v2
          idx = min(max(1,idx),F_nci)
-         F_params_8(idx,MIN_T1) = v1_8; F_params_8(idx,MAX_T1) = v2_8
+         F_params(idx,MIN_T1) = v1; F_params(idx,MAX_T1) = v2
       enddo
       do i_ci=1,F_nci
-         read(auxid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1,v2
          idx = min(max(1,idx),F_nci)
-         F_params_8(idx,MIN_NT1) = v1_8; F_params_8(idx,MAX_NT1) = v2_8
+         F_params(idx,MIN_NT1) = v1; F_params(idx,MAX_NT1) = v2
       enddo
       do i_ci=1,F_nci
-         read(auxid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1,v2
          idx = min(max(1,idx),F_nci)
-         F_params_8(idx,MIN_NT5) = v1_8; F_params_8(idx,MAX_NT5) = v2_8
+         F_params(idx,MIN_NT5) = v1; F_params(idx,MAX_NT5) = v2
       enddo
       do i_ci=1,F_nci
-         read(auxid,*) idx,v1_8,v2_8
+         read(auxid,*) idx,v1,v2
          idx = min(max(1,idx),F_nci)
-         F_params_8(idx,MIN_R) = v1_8; F_params_8(idx,MAX_R) = v2_8
+         F_params(idx,MIN_R) = v1; F_params(idx,MAX_R) = v2
       enddo
       read(auxid,*) F_inflation
       
