@@ -3,13 +3,14 @@ module calc_stat_mod
    use base_stats_mod, only: tTest
    implicit none
    private
-   public :: calc_filename,calc_read,calc_t1, calc_r, calc_nt
+   public :: calc_filename,calc_read,calc_t1, calc_r, calc_nt,calc_ens_pak,calc_ens_unpak
 
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
 #include <clib_interface.cdk>
 
+   integer,parameter,public :: CALC_ENSPAK_SIZE = 8
    integer,save,public :: calc_nmembers = 0
 
 contains
@@ -82,6 +83,65 @@ contains
       !----------------------------------------------------------------------
       return
    end function calc_read
+
+
+   !/*
+   function calc_ens_pak(F_pakdata_8,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8) result(F_istat)
+      implicit none
+      real(RDOUBLE), intent(out) :: F_pakdata_8(CALC_ENSPAK_SIZE)
+      character(len=*), intent(in) :: F_varname_S
+      integer, intent(in) :: F_level,F_hour,F_ni,F_nj,F_nmembers
+      real(RDOUBLE), intent(in) :: F_exavg_8,F_gss_8
+      integer :: F_istat
+      !*/
+      character(len=4) :: varanme_S
+      integer :: ivarname
+      !----------------------------------------------------------------------
+      F_istat = RMN_ERR
+      varanme_S = F_varname_S
+      ivarname = transfer(varanme_S,ivarname)
+      F_pakdata_8(1) = dble(F_ni)
+      F_pakdata_8(2) = dble(F_nj)
+      F_pakdata_8(3) = dble(ivarname)
+      F_pakdata_8(4) = dble(F_level)
+      F_pakdata_8(5) = dble(F_hour)
+      F_pakdata_8(6) = dble(F_nmembers)
+      F_pakdata_8(7) = F_exavg_8
+      F_pakdata_8(8) = F_gss_8
+      F_istat = RMN_OK
+     !----------------------------------------------------------------------
+      return
+   end function calc_ens_pak
+
+
+   !/*
+   function calc_ens_unpak(F_pakdata_8,F_varname_S,F_level,F_hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8) result(F_istat)
+      implicit none
+      real(RDOUBLE), intent(in) :: F_pakdata_8(CALC_ENSPAK_SIZE)
+      character(len=*), intent(out) :: F_varname_S
+      integer, intent(out) :: F_level,F_hour,F_ni,F_nj,F_nmembers
+      real(RDOUBLE), intent(out) :: F_exavg_8,F_gss_8
+      integer :: F_istat
+      !*/
+      character(len=4) :: varanme_S
+      integer :: ivarname
+      !----------------------------------------------------------------------
+      F_istat = RMN_ERR
+      F_ni = nint(F_pakdata_8(1))
+      F_nj = nint(F_pakdata_8(2))
+      ivarname = nint(F_pakdata_8(3))
+      varanme_S = transfer(ivarname,varanme_S)
+      F_varname_S = varanme_S
+      F_level = nint(F_pakdata_8(4))
+      F_hour = nint(F_pakdata_8(5))
+      F_nmembers = nint(F_pakdata_8(6))
+      F_exavg_8 = F_pakdata_8(7)
+      F_gss_8 = F_pakdata_8(8)
+      F_istat = RMN_OK
+      !----------------------------------------------------------------------
+      return
+   end function calc_ens_unpak
+
 
    !/*
    function calc_t1(F_data,F_exavg_8,F_gss0_8,F_gss_8,F_tstat) result(F_istat)

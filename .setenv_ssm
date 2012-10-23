@@ -3,4 +3,4 @@ if [[ x$BASE_ARCH == xAIX-powerpc7 ]] ; then
    s.use gmake as make
 fi
 export PATH=$(pwd)/bin:${PATH}
-export SVERIF_STATPATH=/users/dor/armn/tst/local/pollux/tmp
+export SVERIF_STATPATH=$TMPDIR

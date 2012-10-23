@@ -1,6 +1,7 @@
 !/*
 program sverif_eval
-   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,calc_ens_unpak,CALC_ENSPAK_SIZE
+   use fst_mod, only: fst_open,fst_find,fst_read,fst_close
    implicit none
    !@objective 
    !@description
@@ -42,7 +43,7 @@ program sverif_eval
    istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) stop
 
-   istat = read_control_file(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8,inflation)
+   istat = read_ens_stats(ctrl_dirname_S,varname_S,level,hour,nmembers,nci,ni,nj,params_8,exavg_8,gss_8,eavg_8,evar_8,inflation)
    if (.not.RMN_IS_OK(istat)) stop
 
    calc_nmembers = nmembers
@@ -146,7 +147,7 @@ contains
    end function parse_args
 
    !/*
-   function read_control_file(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8,F_inflation) result(F_istat)
+   function read_ens_stats(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params_8,F_exavg_8,F_gss_8,F_eavg_8,F_evar_8,F_inflation) result(F_istat)
       implicit none
       character(len=*),intent(in) :: F_dirname_S,F_varname_S
       integer,intent(in) :: F_level,F_hour
@@ -158,9 +159,10 @@ contains
       !*/
       character(len=1024) :: filename_S,line_S
       character(len=4) :: varname0_S, varname_S
-      integer :: level, hour, istat, fileid, auxid, ii,jj,ii1,jj1,idx,i_ci
+      integer :: level, hour, istat, fileid, fd, auxid, ii,jj,ii1,jj1,idx,i_ci,datev,key,ni1,nj1,nk1
       logical :: isfound
       real(RDOUBLE) :: v1_8,v2_8
+      real(RDOUBLE) :: pakdata_8(CALC_ENSPAK_SIZE)
       !----------------------------------------------------------------------
 
       ! Open precomputed statistics file for reading
@@ -173,7 +175,8 @@ contains
          return
       endif
       fileid = 0
-      F_istat = fnom(fileid,filename_S,'SEQ/FMT+R/O+OLD',0)
+      F_istat = fnom(fileid,trim(filename_S),'RND+R/O+OLD',0)
+      F_istat = min(fstouv(fileid,'RND'),F_istat)
       if (.not.RMN_IS_OK(F_istat) .or. fileid <= 0) then
          write(RMN_STDERR,*) '(sverif_eval) ERROR: Problem opening Control file: '//trim(filename_S)
          return
@@ -196,15 +199,33 @@ contains
       endif
 
       ! Read in header and gridded data from precomputed statistics file
-      read(fileid,*) varname_S,level,hour
-      read(fileid,*) F_nmembers,F_ni,F_nj
-      read(fileid,*) F_exavg_8,F_gss_8
+      datev = RMN_ANY_DATE
+      key = fst_find(fileid,F_varname_S,datev,F_level,F_hour,RMN_ANY_I)
+      istat = fstluk(pakdata_8,key,ni1,nj1,nk1)
+
+      F_istat = calc_ens_unpak(pakdata_8,varname_S,level,hour,F_ni,F_nj,F_nmembers,F_exavg_8,F_gss_8)
+
       allocate(F_eavg_8(F_ni,F_nj),F_evar_8(F_ni,F_nj))
-      do jj=1,F_nj
-         do ii=1,F_ni
-            read(fileid,*) ii1,jj1,F_eavg_8(ii,jj),F_evar_8(ii,jj)
-         enddo
-      enddo
+
+      datev = RMN_ANY_DATE
+      key = fst_find(fileid,'eavg',datev,F_level,F_hour,RMN_ANY_I)
+      istat = fstluk(F_eavg_8,key,ni1,nj1,nk1)
+
+      datev = RMN_ANY_DATE
+      key = fst_find(fileid,'evar',datev,F_level,F_hour,RMN_ANY_I)
+      istat = fstluk(F_evar_8,key,ni1,nj1,nk1)
+
+!!$      fd = 0
+!!$      F_istat = fnom(fd,trim(filename_S)//'2','SEQ/FMT',0)
+!!$      write(fd,'(a,2(x,i))') trim(varname_S),level,hour
+!!$      write(fd,'(3(i,x))') nmembers,ni,nj
+!!$      write(fd,'(2(d,x))') real(F_exavg_8),real(F_gss_8)
+!!$      do jj=1,F_nj
+!!$         do ii=1,F_ni
+!!$            write(fd,'(2(i,x),2(d,x))') ii,jj,real(F_eavg_8(ii,jj)),real(F_evar_8(ii,jj))
+!!$         enddo
+!!$      enddo
+!!$      istat = fclos(fd)
 
       ! Read in basic text information from auxiliary file
       read(auxid,'(a)') line_S
@@ -238,11 +259,12 @@ contains
       read(auxid,*) F_inflation
       
       ! Close files and return
+      istat = fstfrm(fileid)
       istat = fclos(fileid)
       istat = fclos(auxid)
       !----------------------------------------------------------------------
       return
-   end function read_control_file
+   end function read_ens_stats
 
 
 end program sverif_eval

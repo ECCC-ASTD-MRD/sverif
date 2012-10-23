@@ -1,6 +1,6 @@
 !/*
 program sverif_prep
-   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers
+   use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,CALC_ENSPAK_SIZE,calc_ens_pak
    use rng_mod, only: rng_t,rng_seed
    implicit none
    !@objective 
@@ -242,6 +242,7 @@ contains
       return
     end function write_tstat_file
 
+
    !/*
    function write_ens_stats(F_exavg_8,F_eavg_8,F_gss_8,F_evar_8) result(F_istat)
      implicit none
@@ -249,27 +250,35 @@ contains
      real(RDOUBLE),dimension(:,:),intent(in) :: F_eavg_8,F_evar_8
      integer :: F_istat
      !*/
-     integer :: fd,ii,jj,ni,nj
+     integer, external :: fst_data_length
+     integer, parameter :: MYNPAK = -32
+     real(RDOUBLE) :: pakdata_8(CALC_ENSPAK_SIZE)
+     integer :: fd,istat,ni,nj
      character(len=1024) :: filename_S,filepath_S
     !----------------------------------------------------------------------
      F_istat = RMN_OK
-     ni = size(F_eavg_8,dim=1)
-     nj = size(F_eavg_8,dim=2)
      F_istat = calc_filename(filename_S,'pre',varname_S,level,hour)
      filepath_S = trim(out_dirname_S)//'/'//trim(filename_S)
+     ni = size(F_evar_8,1)
+     nj = size(F_evar_8,2)
+     F_istat = calc_ens_pak(pakdata_8,varname_S,level,hour,ni,nj,nmembers,F_exavg_8,F_gss_8)
      fd = 0
-     F_istat = fnom(fd,trim(filepath_S),'SEQ/FMT',0)
-     write(fd,'(a,2(x,i))') trim(varname_S),level,hour
-     write(fd,'(3(i,x))') nmembers,ni,nj
-     write(fd,'(2(d,x))') real(F_exavg_8),real(F_gss_8)
-     do jj=1,nj
-        do ii=1,ni
-           write(fd,'(2(i,x),2(d,x))') ii,jj,real(F_eavg_8(ii,jj)),real(F_evar_8(ii,jj))
-        enddo
-     enddo
-     F_istat = fclos(fd)
-     return
+     istat = fnom(fd,trim(filepath_S),'RND+R/W',0)
+     istat = fstouv(fd,'RND')
+     istat = fstecr(pakdata_8,pakdata_8,MYNPAK,fd,0,0,0, &
+              size(pakdata_8),1,1,level,hour,0,' ',varname_S,' ', &
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
+     istat = fstecr(F_eavg_8,F_eavg_8,MYNPAK,fd,0,0,0, &
+              ni,nj,1,level,hour,0,' ','eavg',' ', &
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
+     istat = fstecr(F_evar_8,F_evar_8,MYNPAK,fd,0,0,0, &
+              ni,nj,1,level,hour,0,' ','evar',' ', &
+              'X',0,0,0,0,RMN_DTYPE_IEEE+fst_data_length(8),.true.)
+     istat = fstfrm(fd)
+     istat = fclos(fd)
+    return
    end function write_ens_stats
+
 
    !/*
    function test_entry(F_entry,F_evar0_8,F_scale,F_rng,F_tstat) result(F_istat)
@@ -396,6 +405,7 @@ contains
       return
    end function prep_entry
 
+   !/*
    function perturb(F_data,F_var_8,F_scale,F_rng,F_perturb_data_8) result(F_istat)
      use rng_mod, only: rng_t,rng_uniform
      ! Select a Gaussian perturbation based on the scaled ensemble variance
