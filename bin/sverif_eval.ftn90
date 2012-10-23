@@ -87,7 +87,7 @@ program sverif_eval
          isok = .false.
       endif
 
-      if (r_stat_8 >= params_8(i_ci,MIN_R)) then
+      if (r_stat_8 <= params_8(i_ci,MAX_R)) then
          write(RMN_STDOUT,'(a)') 'PASS R   '//trim(msg_S)
       else
          write(RMN_STDOUT,'(a)') 'FAIL R   '//trim(msg_S)
