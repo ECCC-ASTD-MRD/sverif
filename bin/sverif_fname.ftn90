@@ -22,13 +22,13 @@ program sverif_fname
    if (istat /= 0) then
       istat2 = RMN_ERR
    else
-      read(arg_S,'(i)') level
+      read(arg_S,*) level
    endif
    call get_command_argument(4,arg_S,mylen,istat)
    if (istat /= 0) then
       istat2 = RMN_ERR
    else
-      read(arg_S,'(i)') hour
+      read(arg_S,*) hour
    endif
    if (.not.RMN_IS_OK(istat2)) then
       write(RMN_STDERR,*) '(sverif_fname) ERROR: Wrong args, Usage: sverif_fname CLASS(pre/tstat/aux) VARNAME LEVEL HOUR'

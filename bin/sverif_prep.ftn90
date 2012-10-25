@@ -25,8 +25,8 @@ program sverif_prep
 #include <rmnlib_basics.hf>
 #include <clib_interface.cdk>
 
-   integer,parameter :: MAX_MEMBERS = 32, LONG_CHAR = 1024, STDOUT = 6, &
-        STDERR = 0, NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
+   integer,parameter :: MAX_MEMBERS = 32, LONG_CHAR = 1024,  &
+        NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4
 
    type :: memberdata_T
       character(len=LONG_CHAR) :: f_S
@@ -49,22 +49,22 @@ program sverif_prep
    ! Read inputs to program (arguments, control file and data)
    istat = parse_args(varname_S,level,hour,ctrl_filename_S,out_dirname_S)
    if (.not.RMN_IS_OK(istat)) stop
-   write(STDOUT,*) trim(varname_S),level,hour,trim(ctrl_filename_S)
+   write(RMN_STDOUT,*) trim(varname_S),level,hour,trim(ctrl_filename_S)
    istat = read_control_file(ctrl_filename_S)
    if (.not.RMN_IS_OK(istat)) stop
-   write(STDOUT,*) 'nentries, nmembers',nentries,nmembers
+   write(RMN_STDOUT,*) 'nentries, nmembers',nentries,nmembers
    calc_nmembers = nmembers
    do nn=1,nmembers
-      write(STDOUT,*) nn,':',trim(members(nn)%f_S)
+      write(RMN_STDOUT,*) nn,':',trim(members(nn)%f_S)
       istat = min(calc_read(members(nn)%d,members(nn)%f_S,varname_S,level,hour),istat)
       if (.not.RMN_IS_OK(istat)) then
-         write(STDERR,*) '(sverif_prep) Error returned by calc_read'
+         write(RMN_STDERR,*) '(sverif_prep) Error returned by calc_read'
          stop
       endif
       ni = size(members(nn)%d,dim=1); nj = size(members(nn)%d,dim=2)
       if (nn > 1) then
          if (ni /= niPrev .or. nj /= njPrev) then
-            write(STDERR,*) '(sverif_prep) Grid dimension mismatch for '//trim(members(nn)%f_S)
+            write(RMN_STDERR,*) '(sverif_prep) Grid dimension mismatch for '//trim(members(nn)%f_S)
             stop
          endif
       endif
@@ -74,17 +74,17 @@ program sverif_prep
    ! Allocate space based on input sizes
    allocate(tstat(nentries,NSTAT),stat=istat)
    if (istat /= 0) then
-      write(STDERR,*) '(sverif_prep) Unable to allocate space for basic variables'
+      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for basic variables'
       stop
    endif
    allocate(flds0(ni,nj,nmembers),stat=istat)
    if (istat /= 0) then
-      write(STDERR,*) '(sverif_prep) Unable to allocate space for fields'
+      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for fields'
       stop
    endif
    allocate(rng(nentries),stat=istat)
    if (istat /= 0) then
-      write(STDERR,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
+      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
       stop
    endif
 
@@ -92,7 +92,7 @@ program sverif_prep
    allocate(eavg0(ni,nj),evar0(ni,nj),stat=istat)
    evar0 = -1.
    if (istat /= 0) then
-      write(STDERR,*) '(sverif_prep) Unable to allocate space for first-entry fields'
+      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for first-entry fields'
       stop
    endif
    call rng_seed(rng(1),932118)
@@ -133,13 +133,13 @@ contains
      if (istat /= 0) then
          F_istat = RMN_ERR
       else
-         read(arg_S,'(i)') F_level
+         read(arg_S,*) F_level
       endif
       call get_command_argument(3,arg_S,mylen,istat)
       if (istat /= 0) then
          F_istat = RMN_ERR
       else
-         read(arg_S,'(i)') F_hour
+         read(arg_S,*) F_hour
       endif
       call get_command_argument(4,F_ctrl_filename_S,mylen,istat)
       if (istat /= 0) F_istat = RMN_ERR
@@ -159,7 +159,6 @@ contains
       integer :: F_istat
       !*/
       integer :: istat, fileid, nn
-      character(len=128) :: nmembers_S
       character(len=1024) :: fpath
       !----------------------------------------------------------------------
       F_istat = clib_isfile(trim(F_filename_S))
@@ -202,7 +201,6 @@ contains
          call msg(MSG_ERROR,'(sverif_prep) Problem allocating memory for control file entries')
          F_istat = RMN_ERR
       endif
-      write(nmembers_S,'(i)') nmembers
       do nn=1,nentries
          read(fileid,*,iostat=istat) entries(nn,0:nmembers)
          if (istat /=0 ) then
@@ -236,7 +234,7 @@ contains
          return
       endif
       do nn=1,size(F_tstat,dim=1)
-         write(fd,'(100f)') F_tstat(nn,:)
+         write(fd,'(100f15.9)') F_tstat(nn,:)
       enddo
       F_istat = fclos(fd)
       return
@@ -300,27 +298,27 @@ contains
       !#      control members list  is in entries(F_entry,1:nmembers)
       F_istat = prep_entry(F_entry,F_evar0,F_scale,F_rng,exavg,eavg,gss,evar)
       if (F_istat /= RMN_OK) then
-         write(STDERR,*) 'Error returned by prep_entry'
+         write(RMN_STDERR,*) 'Error returned by prep_entry'
          return
       endif
       F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg,gss0,gss,F_tstat(T1))
       if (F_istat /= RMN_OK) then
-         write(STDERR,*) 'Error returned by calc_t1'
+         write(RMN_STDERR,*) 'Error returned by calc_t1'
          return
       endif
       F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT1))
       if (F_istat /= RMN_OK) then
-         write(STDERR,*) 'Error returned by calc_nt(1)'
+         write(RMN_STDERR,*) 'Error returned by calc_nt(1)'
          return
       endif
       F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT5))
       if (F_istat /= RMN_OK) then
-         write(STDERR,*) 'Error returned by calc_nt(5)'
+         write(RMN_STDERR,*) 'Error returned by calc_nt(5)'
          return
       endif
       F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg,eavg,F_tstat(R))
       if (F_istat /= RMN_OK) then
-         write(STDERR,*) 'Error returned by calc_r'
+         write(RMN_STDERR,*) 'Error returned by calc_r'
          return
       endif
       !----------------------------------------------------------------------
@@ -412,7 +410,7 @@ contains
       if (myDump) then
          F_istat = write_ens_stats(F_exavg,F_eavg,F_gss,F_evar)
          if (F_istat /= RMN_OK) then
-            write(STDERR,*) 'Error returned by write_ens_stats'
+            write(RMN_STDERR,*) 'Error returned by write_ens_stats'
             return
          endif
       endif

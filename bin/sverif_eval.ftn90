@@ -123,13 +123,13 @@ contains
       if (istat /= 0) then
          F_istat = RMN_ERR
       else
-         read(arg_S,'(i4)') F_level
+         read(arg_S,*) F_level
       endif
       call get_command_argument(3,arg_S,mylen,istat)
       if (istat /= 0) then
          F_istat = RMN_ERR
       else
-         read(arg_S,'(i)') F_hour
+         read(arg_S,*) F_hour
       endif
       call get_command_argument(4,F_data_filename_S,mylen,istat)
       if (istat /= 0) F_istat = RMN_ERR
