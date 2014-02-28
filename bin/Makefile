@@ -1,12 +1,13 @@
 #FFLAGS = =-C -g
-
-COMM_VERSION  = _40007
-RMN_VERSION   = rmn_013
+FFLAGS = =-C -g
+FORCE_RMN_VERSION_RC = _rc2
+RMN_VERSION   = rmn_014$(FORCE_RMN_VERSION_RC)
+COMM_VERSION  = _40510
 COMM_stubs    = rpn_commstubs$(COMM_VERSION) 
 COMM          = rpn_comm$(COMM_VERSION) $(COMM_stubs)
 VGRID         = descrip modelutils_base
 LIBS          = modelutils $(VGRID) $(COMM)
-OMP	      = -openmp
+OMP	        = -openmp
 
 OBJS = base_stats_mod.o calc_stat_mod.o rng_mod.o
 
