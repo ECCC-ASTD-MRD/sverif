@@ -392,17 +392,6 @@ contains
             enddo
          enddo
       enddo
-
-!!$         do jj=1,nj
-!!$            do ii=1,ni
-!!$               if (evar_8(ii,jj) > 4.) then
-!!$                  print*, ii,jj,data(ii,jj,:)
-!!$                  print*, evar_8(ii,jj),eavg_8(ii,jj)
-!!$                  pause
-!!$               endif
-!!$            enddo
-!!$         enddo
-
       evar_8 = evar_8/dble(nmembers)
       F_evar = real(evar_8)
 

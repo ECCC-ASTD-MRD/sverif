@@ -160,7 +160,7 @@ contains
          return
       endif
       F_istat = RMN_OK
-      F_tstat = (F_exavg - sum(F_data)/size(F_data))/sqrt(F_gss+F_gss0)
+      F_tstat = (F_exavg - sum(dble(F_data))/size(F_data))/sqrt(F_gss+F_gss0)
       !----------------------------------------------------------------------
    end function calc_t1
 
@@ -183,7 +183,7 @@ contains
          return
       endif
       F_istat = RMN_OK
-      avg = (sum(F_data)/size(F_data))
+      avg = (sum(dble(F_data))/size(F_data))
       excor_8 = 0.d0
       exss_8 = 0.d0
       do jj=1,size(F_data,dim=2)
