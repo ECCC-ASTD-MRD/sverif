@@ -339,8 +339,8 @@ contains
       !*/
       integer :: imember,ii,jj,ni,nj
       real(RDOUBLE) :: exavg_8,gss_8,rni,rnj,rnt
-      real(RDOUBLE), dimension(size(F_eavg,dim=1),size(F_eavg,dim=2)) :: eavg_8,evar_8
-      real(RDOUBLE), dimension(size(F_eavg,dim=1),size(F_eavg,dim=2),nmembers) :: data
+      real(RDOUBLE), dimension(:,:),allocatable :: eavg_8,evar_8
+      real(RDOUBLE), dimension(:,:,:), allocatable :: data
       logical :: myDump
       !----------------------------------------------------------------------
       F_istat = RMN_OK
@@ -351,6 +351,12 @@ contains
       rni = dble(size(F_eavg,dim=1))
       rnj = dble(size(F_eavg,dim=2))
       rnt = dble(nmembers)
+
+      ! Allocate space for calculations
+!$omp critical
+      allocate(eavg_8(size(F_eavg,dim=1),size(F_eavg,dim=2)),evar_8(size(F_eavg,dim=1),size(F_eavg,dim=2)))
+      allocate(data(size(F_eavg,dim=1),size(F_eavg,dim=2),nmembers))
+!$omp end critical
 
       ! Perturb fields based on a parameteric model
       do imember=1,nmembers
@@ -400,9 +406,14 @@ contains
          F_istat = write_ens_stats(F_exavg,F_eavg,F_gss,F_evar)
          if (F_istat /= RMN_OK) then
             write(RMN_STDERR,*) 'Error returned by write_ens_stats'
-            return
          endif
       endif
+
+      ! Free memory
+!$omp critical
+      deallocate(eavg_8,evar_8)
+      deallocate(data)
+!$omp end critical
       !----------------------------------------------------------------------
       return
    end function prep_entry
