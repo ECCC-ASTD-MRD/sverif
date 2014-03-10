@@ -353,10 +353,8 @@ contains
       rnt = dble(nmembers)
 
       ! Allocate space for calculations
-!$omp critical
       allocate(eavg_8(size(F_eavg,dim=1),size(F_eavg,dim=2)),evar_8(size(F_eavg,dim=1),size(F_eavg,dim=2)))
       allocate(data(size(F_eavg,dim=1),size(F_eavg,dim=2),nmembers))
-!$omp end critical
 
       ! Perturb fields based on a parameteric model
       do imember=1,nmembers
@@ -410,10 +408,8 @@ contains
       endif
 
       ! Free memory
-!$omp critical
       deallocate(eavg_8,evar_8)
       deallocate(data)
-!$omp end critical
       !----------------------------------------------------------------------
       return
    end function prep_entry
