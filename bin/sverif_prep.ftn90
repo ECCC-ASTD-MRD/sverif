@@ -370,14 +370,14 @@ contains
       enddo
 
       ! Compute the ensemble mean value
-      exavg_8 = sum(data)/dble(ni*nj*(nmembers))
+      exavg_8 = sum(dble(data))/dble(ni*nj*(nmembers))
       F_exavg = real(exavg_8)
 
       ! Compute the ensemble mean field
       eavg_8 = 0.d0
       do jj=1,nj
          do ii=1,ni
-            eavg_8(ii,jj) = sum(data(ii,jj,:))
+            eavg_8(ii,jj) = sum(dble(data(ii,jj,:)))
          enddo
       enddo
       eavg_8 = eavg_8/dble(nmembers)
