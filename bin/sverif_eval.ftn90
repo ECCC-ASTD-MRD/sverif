@@ -28,8 +28,9 @@ program sverif_eval
    integer,parameter :: CI = 9
    integer,parameter :: NPARAMS = 9
    integer,parameter :: MAX_CI = 9
+   integer,parameter :: LONG_STRING = 4096
 
-   character(len=1024) :: data_filename_S,ctrl_dirname_S,msg_S
+   character(len=LONG_STRING) :: data_filename_S,ctrl_dirname_S,msg_S
    character(len=4) :: varname_S
    integer :: istat,level,hour,nmembers,nci,ni,nj,i_ci
    real :: inflation
@@ -113,7 +114,7 @@ contains
       integer,intent(out) :: F_level,F_hour
       integer :: F_istat
       !*/
-      character(len=256) :: arg_S,msg_S
+      character(len=LONG_STRING) :: arg_S,msg_S
       integer :: mylen,istat
       !----------------------------------------------------------------------
       F_istat = RMN_OK
@@ -157,7 +158,7 @@ contains
       real, intent(out) :: F_inflation
       integer :: F_istat
       !*/
-      character(len=1024) :: filename_S,line_S
+      character(len=LONG_STRING) :: filename_S,line_S
       character(len=4) :: varname0_S, varname_S
       integer :: level, hour, istat, fileid, fd, auxid, ii,jj,ii1,jj1,idx,i_ci,datev,key,ni1,nj1,nk1
       logical :: isfound
