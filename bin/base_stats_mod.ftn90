@@ -25,14 +25,6 @@ contains
     real :: degf
 
     !  Allocate space for return value
-    if (associated(pValue)) then
-       deallocate(pValue,stat=err)
-       if (err /= 0) then
-          write(0,*) 'Error deallocating pValue'
-          pValue=>null()
-          return
-       endif
-    endif
     allocate(pValue(size(tValue,dim=1),size(tValue,dim=2)),stat=err)
     if (err /= 0) then
        write(0,*) 'Error allocating pValue'
