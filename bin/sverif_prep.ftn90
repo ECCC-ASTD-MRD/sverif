@@ -353,8 +353,16 @@ contains
       rnt = dble(nmembers)
 
       ! Allocate space for calculations
-      allocate(eavg_8(size(F_eavg,dim=1),size(F_eavg,dim=2)),evar_8(size(F_eavg,dim=1),size(F_eavg,dim=2)))
-      allocate(data(size(F_eavg,dim=1),size(F_eavg,dim=2),nmembers))
+      if (allocated(eavg_8)) then
+         if (size(eavg_8,dim=1) /= ni .or. size(eavg_8,dim=2) /= nj) then
+            deallocate(eavg_8,evar_8)
+            deallocate(data)
+         endif
+      endif
+      if (.not.allocated(eavg_8)) then
+         allocate(eavg_8(ni,nj),evar_8(ni,nj))
+         allocate(data(ni,nj,nmembers))
+      endif
 
       ! Perturb fields based on a parameteric model
       do imember=1,nmembers
@@ -407,9 +415,6 @@ contains
          endif
       endif
 
-      ! Free memory
-      deallocate(eavg_8,evar_8)
-      deallocate(data)
       !----------------------------------------------------------------------
       return
    end function prep_entry
