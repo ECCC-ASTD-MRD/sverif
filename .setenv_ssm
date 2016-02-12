@@ -1,11 +1,1 @@
-. s.ssmuse.dot Prepend Linux_x86-64:mpich2 Linux_x86-64:pgi9xx AIX-powerpc7:Xlf13.110 legacy rmnlib-dev devtools ENV/d/rpn_comm/4.5.10 CMDN/vgrid/4.3.0 ENV/d/modelutils/modelutils_1.2.1
-if [[ x$BASE_ARCH == xAIX-powerpc7 ]] ; then
-   s.use gmake as make
-fi
-export PATH=$(pwd)/bin:${PATH}
-export SVERIF_STATPATH=$TMPDIR
-ulimit -s unlimited
-ulimit -s unlimited
-ulimit -m unlimited
-ulimit -d unlimited
-ulimit -t unlimited
+.setenv.dot

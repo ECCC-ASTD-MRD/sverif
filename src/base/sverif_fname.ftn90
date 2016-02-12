@@ -1,12 +1,12 @@
-!/*
-program sverif_fname
+!/@*
+subroutine sverif_fname
    use calc_stat_mod, only: calc_filename
    implicit none
    !@objective 
    !@description
    !   Calling Sequence:
    !      sverif_fname VARNAME LEVEL HOUR
-   !*/
+   !*@/
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
    character(len=4) :: varname_S
@@ -41,5 +41,5 @@ program sverif_fname
    endif
    write(RMN_STDOUT,'(a)') trim(filename_S)
    !----------------------------------------------------------------------
-end program sverif_fname
+end subroutine sverif_fname
   

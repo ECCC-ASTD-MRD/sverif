@@ -1,5 +1,5 @@
-!/*
-program sverif_eval
+!/@*
+subroutine sverif_eval
    use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,calc_ens_unpak,CALC_ENSPAK_SIZE
    use fst_mod, only: fst_open,fst_find,fst_read,fst_close
    implicit none
@@ -11,7 +11,7 @@ program sverif_eval
    !      VARNAME LEVEL HOUR NMEMBERS NI NJ EXAVG GSS MIN_T1 MAX_T1 MIN_NT1 MAX_NT1 MIN_NT5 MAX_NT5 MIN_R
    !      EAVG(NI,NJ)
    !      EVAR(NI,NJ)
-   !*/
+   !*@/
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
@@ -105,7 +105,7 @@ program sverif_eval
 
 contains
 
-   !/*
+   !/@*
    function parse_args(F_data_filename_S,F_crtl_dirname_S,F_varname_S,F_level,F_hour) result(F_istat)
       implicit none
       character(len=*),intent(out) :: F_data_filename_S
@@ -113,7 +113,7 @@ contains
       character(len=*),intent(out) :: F_varname_S
       integer,intent(out) :: F_level,F_hour
       integer :: F_istat
-      !*/
+      !*@/
       character(len=LONG_STRING) :: arg_S,msg_S
       integer :: mylen,istat
       !----------------------------------------------------------------------
@@ -147,7 +147,7 @@ contains
       return
    end function parse_args
 
-   !/*
+   !/@*
    function read_ens_stats(F_dirname_S,F_varname_S,F_level,F_hour,F_nmembers,F_nci,F_ni,F_nj,F_params,F_exavg,F_gss,F_eavg,F_evar,F_inflation) result(F_istat)
       implicit none
       character(len=*),intent(in) :: F_dirname_S,F_varname_S
@@ -157,7 +157,7 @@ contains
       real,pointer :: F_eavg(:,:),F_evar(:,:)
       real, intent(out) :: F_inflation
       integer :: F_istat
-      !*/
+      !*@/
       character(len=LONG_STRING) :: filename_S,line_S
       character(len=4) :: varname0_S, varname_S
       integer :: level, hour, istat, fileid, fd, auxid, ii,jj,ii1,jj1,idx,i_ci,datev,key,ni1,nj1,nk1
@@ -256,5 +256,4 @@ contains
       return
    end function read_ens_stats
 
-
-end program sverif_eval
+end subroutine sverif_eval

@@ -4,4 +4,5 @@
 *.png
 *.ps
 *.pdf
+*.orig
 data/

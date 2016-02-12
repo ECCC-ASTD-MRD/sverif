@@ -1,5 +1,5 @@
-!/*
-program sverif_prep
+!/@*
+subroutine sverif_prep
    use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,CALC_ENSPAK_SIZE,calc_ens_pak
    use rng_mod, only: rng_t,rng_seed
    implicit none
@@ -19,7 +19,7 @@ program sverif_prep
    !     3 numbers per line (one per test result)
    !     One line per entry
    !     .FtoR_GZ500_120h.dat
-   !*/
+   !*@/
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
@@ -115,14 +115,14 @@ program sverif_prep
 
 contains
 
-   !/*
+   !/@*
    function parse_args(F_varname_S,F_level,F_hour,F_ctrl_filename_S,F_out_dirname_S) result(F_istat)
       implicit none
       character(len=*),intent(out) :: F_varname_S
       character(len=*),intent(out) :: F_ctrl_filename_S,F_out_dirname_S
       integer,intent(out) :: F_level,F_hour
       integer :: F_istat
-      !*/
+      !*@/
       character(len=128) :: arg_S
       integer :: mylen,istat
       !----------------------------------------------------------------------
@@ -152,12 +152,12 @@ contains
       return
    end function parse_args
 
-   !/*
+   !/@*
    function read_control_file(F_filename_S) result(F_istat)
       implicit none
       character(len=*),intent(in) :: F_filename_S
       integer :: F_istat
-      !*/
+      !*@/
       integer :: istat, fileid, nn
       character(len=1024) :: fpath
       !----------------------------------------------------------------------
@@ -216,12 +216,12 @@ contains
    end function read_control_file
 
 
-   !/*
+   !/@*
    function write_tstat_file(F_tstat) result(F_istat)
       implicit none
       real,dimension(:,:),intent(in) :: F_tstat
       integer :: F_istat
-      !*/
+      !*@/
       integer :: fd,nn
       character(len=1024) :: filename_S,filepath_S
       !----------------------------------------------------------------------
@@ -241,13 +241,13 @@ contains
     end function write_tstat_file
 
 
-   !/*
+   !/@*
    function write_ens_stats(F_exavg,F_eavg,F_gss,F_evar) result(F_istat)
      implicit none
      real,intent(in) :: F_exavg,F_gss
      real,dimension(:,:),intent(in) :: F_eavg,F_evar
      integer :: F_istat
-     !*/
+     !*@/
      integer, external :: fst_data_length
      integer, parameter :: MYNPAK = -32
      real :: pakdata(CALC_ENSPAK_SIZE)
@@ -278,7 +278,7 @@ contains
    end function write_ens_stats
 
 
-   !/*
+   !/@*
    function test_entry(F_entry,F_evar0,F_scale,F_rng,F_tstat) result(F_istat)
       use rng_mod, only: rng_t
       implicit none
@@ -288,7 +288,7 @@ contains
       real, dimension(:,:), intent(in) :: F_evar0
       real, dimension(:), intent(out) :: F_tstat
       integer :: F_istat
-      !*/
+      !*@/
       integer :: err
       real :: exavg,gss
       real, dimension(size(F_evar0,dim=1),size(F_evar0,dim=2)) :: eavg,evar
@@ -325,7 +325,7 @@ contains
       return
    end function test_entry
 
-   !/*
+   !/@*
    function prep_entry(F_entry,F_evar0,F_scale,F_rng,F_exavg,F_eavg,F_gss,F_evar,dump) result(F_istat)
       implicit none
       integer, intent(in) :: F_entry
@@ -336,7 +336,7 @@ contains
       real, dimension(:,:), intent(out) :: F_eavg,F_evar
       logical, intent(in), optional :: dump
       integer :: F_istat
-      !*/
+      !*@/
       integer :: imember,ii,jj,ni,nj
       real(RDOUBLE) :: exavg_8,gss_8,rni,rnj,rnt
       real(RDOUBLE), dimension(:,:),allocatable :: eavg_8,evar_8
@@ -419,7 +419,7 @@ contains
       return
    end function prep_entry
 
-   !/*
+   !/@*
    function perturb(F_data,F_var,F_scale,F_rng,F_perturb_data) result(F_istat)
      use rng_mod, only: rng_t,rng_uniform
      ! Select a Gaussian perturbation based on the scaled ensemble variance
@@ -430,7 +430,7 @@ contains
      type(rng_t), intent(inout) :: F_rng
      real(RDOUBLE), dimension(:,:), intent(out) :: F_perturb_data
      integer :: F_istat
-     !*/
+     !*@/
      integer :: ii,jj
      real, parameter :: PI=3.14159
      F_istat = RMN_OK
@@ -448,4 +448,4 @@ contains
      return
    end function perturb
 
-end program sverif_prep
+end subroutine sverif_prep
