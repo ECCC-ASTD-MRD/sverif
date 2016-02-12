@@ -8,7 +8,7 @@ module calc_stat_mod
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
-#include <clib_interface.cdk>
+#include <clib_interface_mu.hf>
 
    integer,parameter,public :: CALC_ENSPAK_SIZE = 8
    integer,save,public :: calc_nmembers = 0

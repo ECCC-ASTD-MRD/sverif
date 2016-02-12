@@ -12,7 +12,7 @@ cd sverif
 #git checkout -b tmp sverif_VERSION
 #update version number (including leading 'x/') in ./include/Makefile.local.mk
 . ./.setenv.dot
-./bin/ouv_exp_sverif
+./bin/ouv_exp_sverif -v
 rdemklink
 make -j components_objects
 make components_libs 

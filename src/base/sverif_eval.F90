@@ -15,7 +15,7 @@ subroutine sverif_eval
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
-#include <clib_interface.cdk>
+#include <clib_interface_mu.hf>
 
    integer,parameter :: MIN_T1  = 1
    integer,parameter :: MAX_T1  = 2

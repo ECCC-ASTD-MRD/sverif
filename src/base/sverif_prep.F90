@@ -23,7 +23,7 @@ subroutine sverif_prep
 #include <msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
-#include <clib_interface.cdk>
+#include <clib_interface_mu.hf>
 
    integer,parameter :: MAX_MEMBERS = 32, LONG_CHAR = 1024,  &
         NSTAT = 4, T1 = 1, NT1 = 2, NT5 = 3, R = 4

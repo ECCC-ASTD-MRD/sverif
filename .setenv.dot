@@ -21,7 +21,7 @@ if [[ -f ssmusedep.bndl ]] ; then
    . s.ssmuse.dot $(cat ssmusedep.bndl)
 fi
 
-export PATH=$(pwd)/bin:$PATH
+export PATH=$(pwd)/bin:$(pwd)/$(rdevar build/bin):$PATH
 #export TEST_S_AR=1
 export SSMVERSION=$(ssm version | cut -d. -f1)
 
