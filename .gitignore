@@ -6,3 +6,9 @@
 *.pdf
 *.orig
 data/
+.rde.*
+Makefile
+Makefile.build.mk
+Makefile.dep.*.mk
+Makefile.rules.mk
+build-*

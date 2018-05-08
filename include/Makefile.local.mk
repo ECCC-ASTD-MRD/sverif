@@ -4,6 +4,8 @@ $(info ## File: $$sverif/include/Makefile.local.mk)
 $(info ## )
 endif
 
+MAKE_NO_LIBSO=1
+
 ## Sverif definitions
 
 # ifeq (,$(wildcard $(sverif)/VERSION))
@@ -11,18 +13,20 @@ endif
 # endif
 # SVERIF_VERSION0  = $(shell cat $(sverif)/VERSION | sed 's|x/||')
 #SVERIF_VERSION0  = x/5.8.rc7
-SVERIF_VERSION0  = 1.0.0
+SVERIF_VERSION0  = 1.0.1
 SVERIF_VERSION   = $(notdir $(SVERIF_VERSION0))
 SVERIF_VERSION_X = $(dir $(SVERIF_VERSION0))
 
 PHYBINDIR = $(BINDIR)
 
 ## Some Shortcut/Alias to Lib Names
-SVERIF_LIBS_DEP = $(MODELUTILS_LIBS_V) $(MODELUTILS_LIBS_DEP)
+SVERIF_MPI_STUBS       = sverif_mpi_stubs
+SVERIF_LIBS_DEP        = $(MODELUTILS_LIBS_V) $(MODELUTILS_LIBS_DEP) $(SVERIF_MPI_STUBS)
 SVERIF_LIBS_SHARED_DEP = $(MODELUTILS_LIBS_SHARED_V) $(MODELUTILS_LIBS_SHARED_DEP)
 
 SVERIF_LIBS_MERGED_0 = sverif_base
-#SVERIF_LIBS_OTHER_0  = sverif_rmn
+# SVERIF_LIBS_OTHER_0  = sverif_rmn
+SVERIF_LIBS_OTHER_0  = $(SVERIF_MPI_STUBS)
 
 SVERIF_SFX=$(RDE_BUILDDIR_SFX)
 SVERIF_LIBS_MERGED = $(foreach item,$(SVERIF_LIBS_MERGED_0),$(item)$(SVERIF_SFX))
@@ -35,15 +39,20 @@ SVERIF_LIBS_0      = sverif$(SVERIF_SFX)
 SVERIF_LIBS        = $(SVERIF_LIBS_0) $(SVERIF_LIBS_OTHER) 
 SVERIF_LIBS_V      = $(SVERIF_LIBS_0)_$(SVERIF_VERSION) $(SVERIF_LIBS_OTHER) 
 
+ifeq (,$(MAKE_NO_LIBSO))
 SVERIF_LIBS_SHARED_ALL = $(foreach item,$(SVERIF_LIBS_ALL),$(item)-shared)
 SVERIF_LIBS_SHARED_0   = $(SVERIF_LIBS_0)-shared
 SVERIF_LIBS_SHARED     = $(SVERIF_LIBS_SHARED_0) $(SVERIF_LIBS_OTHER) 
 SVERIF_LIBS_SHARED_V   = $(SVERIF_LIBS_SHARED_0)_$(SVERIF_VERSION) $(SVERIF_LIBS_OTHER) 
+endif
 
 SVERIF_LIBS_OTHER_FILES = $(foreach item,$(SVERIF_LIBS_OTHER),$(LIBDIR)/lib$(item).a) 
 SVERIF_LIBS_ALL_FILES = $(foreach item,$(SVERIF_LIBS_ALL),$(LIBDIR)/lib$(item).a)
                       # $(foreach item,$(SVERIF_LIBS_SHARED_ALL),$(LIBDIR)/lib$(item).so)
-SVERIF_LIBS_ALL_FILES_PLUS = $(LIBDIR)/lib$(SVERIF_LIBS_0).a $(LIBDIR)/lib$(SVERIF_LIBS_SHARED_0).so $(SVERIF_LIBS_ALL_FILES) 
+ifeq (,$(MAKE_NO_LIBSO))
+SVERIF_LIBS_SHARED_FILES = $(LIBDIR)/lib$(SVERIF_LIBS_SHARED_0).so
+endif
+SVERIF_LIBS_ALL_FILES_PLUS = $(LIBDIR)/lib$(SVERIF_LIBS_0).a $(SVERIF_LIBS_SHARED_FILES) $(SVERIF_LIBS_ALL_FILES) 
 
 OBJECTS_MERGED_sverif = $(foreach item,$(SVERIF_LIBS_MERGED_0),$(OBJECTS_$(item)))
 
@@ -53,7 +62,7 @@ SVERIF_ABS       = sverif_prep sverif_eval sverif_fname
 SVERIF_ABS_FILES = $(foreach item,$(SVERIF_ABS),$(BINDIR)/$(item).Abs)
 
 ## Base Libpath and libs with placeholders for abs specific libs
-#MODEL2_LIBAPPL = $(SVERIF_LIBS_V)
+# MODEL2_LIBAPPL = $(SVERIF_LIBS_V)
 
 
 ##

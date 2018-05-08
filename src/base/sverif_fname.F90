@@ -31,7 +31,7 @@ subroutine sverif_fname
       read(arg_S,*) hour
    endif
    if (.not.RMN_IS_OK(istat2)) then
-      write(RMN_STDERR,*) '(sverif_fname) ERROR: Wrong args, Usage: sverif_fname CLASS(pre/tstat/aux) VARNAME LEVEL HOUR'
+      write(RMN_STDERR,'(/a/)') '(sverif_fname) ERROR: Wrong args, Usage: sverif_fname CLASS(pre/tstat/aux) VARNAME LEVEL HOUR'
       stop
    endif
    istat = calc_filename(filename_S,class_S,varname_S,level,hour)

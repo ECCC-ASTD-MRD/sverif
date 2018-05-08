@@ -14,9 +14,9 @@ cd sverif
 . ./.setenv.dot
 ./bin/ouv_exp_sverif -v
 rdemklink
-make -j components_objects
-make components_libs 
-make components_abs 
+make components_objects -j 6
+make components_libs
+make components_abs
 make components_ssm
 
 #For additional ARCH (for each additional ARCH)
@@ -25,9 +25,9 @@ make components_ssm
       . ./.setenv.dot
       #./bin/ouv_exp_sverif #optional if build in same dir as above
       rdemklink
-      make -j 6 components_objects
+      make components_objects -j 6
       make components_libs
-      make components_abs 
+      make components_abs
       make components_ssm_arch
 
 #For Debug libs (for each ARCH)
