@@ -11,28 +11,28 @@ target_link_libraries(sverif PUBLIC
   modelutils
   )
 
-add_executable(sverif_fname sverif_fname.F90)
-target_link_libraries(sverif_fname
+add_executable(sverif_fname.Abs sverif_fname.F90)
+target_link_libraries(sverif_fname.Abs
   sverif
   modelutils
   rmn::rmn
   ${LAPACK_LIBRARIES}
   ${BLAS_LIBRARIES} )
 
-add_executable(sverif_prep sverif_prep.F90)
-target_link_libraries(sverif_prep
+add_executable(sverif_prep.Abs sverif_prep.F90)
+target_link_libraries(sverif_prep.Abs
   sverif
   modelutils
   rmn::rmn
   ${LAPACK_LIBRARIES}
   ${BLAS_LIBRARIES} )
 
-add_executable(sverif_eval sverif_eval.F90)
-target_link_libraries(sverif_eval
+add_executable(sverif_eval.Abs sverif_eval.F90)
+target_link_libraries(sverif_eval.Abs
   sverif
   modelutils
   rmn::rmn
   ${LAPACK_LIBRARIES}
   ${BLAS_LIBRARIES} )
 
-install(TARGETS sverif_fname sverif_prep sverif_eval RUNTIME DESTINATION bin)
+install(TARGETS sverif_fname.Abs sverif_prep.Abs sverif_eval.Abs RUNTIME DESTINATION bin)

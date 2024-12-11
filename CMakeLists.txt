@@ -9,41 +9,37 @@ include(ec_init)           # Initialise compilers and ec specific functions
 ec_git_version()           # Get version from git state
 ec_parse_manifest()        # Parse MANIFEST file
 
-project(${NAME} DESCRIPTION "${DESCRIPTION}" LANGUAGES Fortran)
+project(${NAME} DESCRIPTION "${DESCRIPTION}" LANGUAGES C Fortran)
 set(PROJECT_VERSION ${VERSION}${STATE})
 
 ec_build_info()            # Generate build information
 
 include(ec_compiler_presets)
-include(ec_openmp)           # Enable OpenMP (-DWITH_OPENMP=TRUE)
+
+set(MPI_COMPILER_FLAGS "${MPI_COMPILER_FLAGS} -static_mpi -nostrip")
+set(STATIC_LINK_INTEL_FLAGS "-static-libgcc -static-libstdc++ -qopenmp-link=static")
+
+set(WITH_OPENMP TRUE CACHE BOOL "Control whether to use OpenMP")
+include(ec_openmp)
+
+find_package(MPI)
 
 if (NOT rmn_FOUND)
    find_package(rmn ${rmn_REQ_VERSION} REQUIRED)
 endif()
 
-install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/*" DESTINATION bin)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/sverif_eval" DESTINATION bin)
+install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/sverif_prep" DESTINATION bin)
+install(FILES "${CMAKE_SOURCE_DIR}/scripts/eval.R" DESTINATION bin)
+install(FILES "${CMAKE_SOURCE_DIR}/scripts/prep.R" DESTINATION bin)
 
-add_subdirectory(src src)
+add_subdirectory(src/modelutils modelutils)
+add_subdirectory(src/sverif sverif)
 
 #----- Generate the config file for the project to be usable via cmake's find_package command
 set(INCLUDE_INSTALL_DIR include)
 set(LIB_INSTALL_DIR     lib)
 set(CONFIG_INSTALL_DIR  "${LIB_INSTALL_DIR}/cmake/${PROJECT_NAME}-${PROJECT_VERSION}")
-
-configure_package_config_file(
-    "Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION "${CONFIG_INSTALL_DIR}"
-    PATH_VARS           INCLUDE_INSTALL_DIR LIB_INSTALL_DIR
-)
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    COMPATIBILITY SameMajorVersion
-)
-install(FILES   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION "${CONFIG_INSTALL_DIR}"
-)
 
 #----- Packaging
 ec_package_name()                 # Define package prefix  
@@ -53,7 +49,6 @@ ec_prepare_ssm()                  # Prepare ssm packaging files
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VENDOR "ECCC")
 set(CPACK_PACKAGE_CONTACT "${MAINTAINER}")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/package")
 set(CPACK_PACKAGE/_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
