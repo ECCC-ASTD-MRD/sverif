@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
 import optparse,subprocess,os,sys
 
 # Set default values
 statpath_name = "SVERIF_STATPATH"
+getstatpath = os.environ['SVERIF_STATPATH']
 
 # Retrieve CL arguments
 usage = "%prog [options] FILE(S)"
@@ -15,14 +17,16 @@ parser.add_option("-p","--prog",dest="prog",default=120,
                   help="forecast (prog) hour ][default 120]",metavar="HOUR")
 parser.add_option("-c","--ci",dest="ci",default='0.05,0.01',
                   help="confindence intervals [default '0.05,0.01']",metavar="INTERVALS")
-parser.add_option("-s","--statpath",dest="statpath",default=os.getenv(statpath_name),
-                  help="path to statistics produced by prep [default "+statpath_name+"="+str(os.getenv(statpath_name))+"]",
+parser.add_option("-s","--statpath",dest="statpath",default=os.environ[statpath_name],
+                  help="path to statistics produced by prep [default "+statpath_name+"="+str(os.environ[statpath_name])+"]",
                   metavar="PATH")
 parser.add_option("-o","--output",dest="outfile",default=None,
                   help="output file (*.png,*.ps,*.pdf) [default verif_(name)(level)-(prog)h.png]",metavar="NAME")
 parser.add_option("-v","--verbose",dest="verbose",default=False,action="store_true",
                   help="emit verbose output",metavar="NAME")
 (options,args) = parser.parse_args()
+
+print("SVERIF_STATPATH is defined as: "+options.statpath)
 
 # Check for at least one data file
 if len(args) < 1:
@@ -50,7 +54,7 @@ script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 command = 'R'+' --no-save --no-restore --args '+options.var+' '+str(options.level)+' '+str(options.prog)+' '+ \
           options.statpath+' '+outfile+' '+str(cinum)+' '+ci+' '+ ' '.join(args)+' <'+os.path.join(script_path,'eval.R')
 if (options.verbose): sys.stdout.write(command+'\n')
-p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+p = subprocess.Popen(command,shell=True,universal_newlines=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 error_message = p.stderr.read().rstrip('\n')
 output_message = p.stdout.read().rstrip('\n')
 if (options.verbose): sys.stdout.write(output_message+'\n')
