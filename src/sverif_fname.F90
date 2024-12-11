@@ -1,5 +1,5 @@
 !/@*
-subroutine sverif_fname
+program sverif_fname
    use calc_stat_mod, only: calc_filename
    implicit none
    !@objective 
@@ -41,5 +41,4 @@ subroutine sverif_fname
    endif
    write(RMN_STDOUT,'(a)') trim(filename_S)
    !----------------------------------------------------------------------
-end subroutine sverif_fname
-  
+end program sverif_fname

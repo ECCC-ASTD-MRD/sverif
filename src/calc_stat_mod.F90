@@ -5,7 +5,7 @@ module calc_stat_mod
    private
    public :: calc_filename,calc_read,calc_t1, calc_r, calc_nt,calc_ens_pak,calc_ens_unpak
 
-#include <msg.h>
+#include <rmn/msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
 #include <clib_interface_mu.hf>

@@ -1,5 +1,5 @@
 !/@*
-subroutine sverif_eval
+program sverif_eval
    use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,calc_ens_unpak,CALC_ENSPAK_SIZE
    use fst_mod, only: fst_open,fst_find,fst_read,fst_close
    implicit none
@@ -12,7 +12,7 @@ subroutine sverif_eval
    !      EAVG(NI,NJ)
    !      EVAR(NI,NJ)
    !*@/
-#include <msg.h>
+#include <rmn/msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
 #include <clib_interface_mu.hf>
@@ -256,4 +256,4 @@ contains
       return
    end function read_ens_stats
 
-end subroutine sverif_eval
+end program sverif_eval

@@ -1,5 +1,5 @@
 !/@*
-subroutine sverif_prep
+program sverif_prep
    use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,CALC_ENSPAK_SIZE,calc_ens_pak
    use rng_mod, only: rng_t,rng_seed
    implicit none
@@ -20,7 +20,7 @@ subroutine sverif_prep
    !     One line per entry
    !     .FtoR_GZ500_120h.dat
    !*@/
-#include <msg.h>
+#include <rmn/msg.h>
 #include <arch_specific.hf>
 #include <rmnlib_basics.hf>
 #include <clib_interface_mu.hf>
@@ -448,4 +448,4 @@ contains
      return
    end function perturb
 
-end subroutine sverif_prep
+end program sverif_prep
