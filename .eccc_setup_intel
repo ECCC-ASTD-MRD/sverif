@@ -25,6 +25,7 @@ esac
 . r.load.dot rpn/code-tools/20240719/env/inteloneapi-${COMPILER_VERSION}
 
 # Load latest version of RPN-SI libraries and utilities
-. r.load.dot rpn/libs/20240717
+. r.load.dot mrd/rpn/libs/20241105-alpha
+. r.load.dot mrd/rpn/utils/20241105-alpha
 
 export SVERIF_STATPATH=${TMPDIR}
