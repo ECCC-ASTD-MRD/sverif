@@ -1,0 +1,14 @@
+NAME       : sverif
+VERSION    : 5.2.4
+BUILD      : RelWithDebInfo
+DESCRIPTION: ECCC-MRD-RPN Statistical verification package
+SUMMARY    : 
+MAINTAINER : Vivian Lee - Vivian.Lee@ec.gc.ca
+URL        : https://wiki.cmc.ec.gc.ca/wiki/sverif
+
+modelutils = 1.7.0
+
+# Dependencies 
+#    =,<,<=,>,>= : Version rules
+#    ~           : Optional
+rmn  >= 20.0.6
