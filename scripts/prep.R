@@ -32,13 +32,13 @@ for (i in 1:(nboot-1)){
 }
 
 # Run ftn code to compute test statistics
-unlink(paste(statpath,system(paste("sverif_fname pre",var,lev,prog),intern=TRUE),sep='/'))
-system(paste("sverif_prep",var,lev,prog,file.in,statpath))
+unlink(paste(statpath,system(paste("sverif_fname.Abs pre",var,lev,prog),intern=TRUE),sep='/'))
+system(paste("sverif_prep.Abs",var,lev,prog,file.in,statpath))
 
 # Retrieve return file and ensemble statistics file
-t.stats<-read.table(paste(statpath,system(paste("sverif_fname tstat",var,lev,prog),intern=TRUE),sep='/'),header=FALSE)
+t.stats<-read.table(paste(statpath,system(paste("sverif_fname.Abs tstat",var,lev,prog),intern=TRUE),sep='/'),header=FALSE)
 colnames(t.stats)<-c("T1","NT1","NT5","R")
-file.aux<-paste(statpath,system(paste("sverif_fname aux",var,lev,prog),intern=TRUE),sep='/')
+file.aux<-paste(statpath,system(paste("sverif_fname.Abs aux",var,lev,prog),intern=TRUE),sep='/')
 
 # Retrieve T1 statistic results
 cinterval(file.aux,t.stats,"T1",ci.bounds,init=TRUE)

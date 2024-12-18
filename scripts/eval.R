@@ -28,7 +28,7 @@ t.min<-list(T1=Inf,NT1=Inf,NT5=Inf,R=Inf)
 t.max<-list(T1=-Inf,NT1=-Inf,NT5=-Inf,R=-Inf)
 t.stats<-c()
 for (file in dfiles){
-  test.results<-system(paste("sverif_eval",var,lev,prog,file,statpath),intern=TRUE)
+  test.results<-system(paste("sverif_eval.Abs",var,lev,prog,file,statpath),intern=TRUE)
   for (t.name in t.stat.names){
     t.long<-paste("calc_",tolower(t.name),sep='')
     eval(parse(text=test.results[grep(t.long,test.results)])[[1]])
@@ -40,7 +40,7 @@ for (file in dfiles){
 }
 
 # Retrieve pdes for test statistics
-t.stat<-read.table(paste(statpath,system(paste("sverif_fname tstat",var,lev,prog),intern=TRUE),sep="/"))
+t.stat<-read.table(paste(statpath,system(paste("sverif_fname.Abs tstat",var,lev,prog),intern=TRUE),sep="/"))
 colnames(t.stat)<-t.stat.names
 pde<-list()
 for (t.name in t.stat.names){
