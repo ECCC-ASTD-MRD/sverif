@@ -36,6 +36,18 @@ librmn is loaded through the `.eccc_setup_intel` file.
 
 ```
 . r.load.dot [path where package is installed]
+```
+
+Or to test locally, the path to find the binaries:
+
+```
+export PATH=[path of where you cloned sverif]/build/install/bin:$PATH
+```
+
+(intel compiler code-tools must be loaded)
+
+```
+cd [path of where your files to verify]
 
 sverif_prep  -p 24 -b 5 -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
 sverif_eval -p 24  -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
