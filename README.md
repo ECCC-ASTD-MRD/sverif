@@ -80,6 +80,6 @@ make install
  - run to run results are not bit-reproducible as random generator is used
 
 ```
-sverif_prep  -p 24 -b 5 -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
+sverif_prep -p 24 -b 5 -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
 sverif_eval -p 24  -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
 ```
