@@ -1,5 +1,6 @@
 !/@*
 program sverif_prep
+   use App
    use calc_stat_mod, only: calc_filename,calc_read, calc_t1, calc_r, calc_nt,calc_nmembers,CALC_ENSPAK_SIZE,calc_ens_pak
    use rng_mod, only: rng_t,rng_seed
    implicit none
@@ -20,7 +21,7 @@ program sverif_prep
    !     One line per entry
    !     .FtoR_GZ500_120h.dat
    !*@/
-#include <rmn/msg.h>
+
 #include <rmn/clib_interface.cdk>
 #include <rmnlib_basics.hf>
 
@@ -59,13 +60,13 @@ program sverif_prep
       write(RMN_STDOUT,*) nn,':',trim(members(nn)%f_S)
       success = calc_read(members(nn)%d,members(nn)%f_S,varname_S,level,hour)
       if (.not. success) then
-         write(RMN_STDERR,*) '(sverif_prep) Error returned by calc_read'
+         call app_log(APP_ERROR,'sverif_prep: Error returned by calc_read')
          stop
       endif
       ni = size(members(nn)%d,dim=1); nj = size(members(nn)%d,dim=2)
       if (nn > 1) then
          if (ni /= niPrev .or. nj /= njPrev) then
-            write(RMN_STDERR,*) '(sverif_prep) Grid dimension mismatch for '//trim(members(nn)%f_S)
+            call app_log(APP_ERROR,'sverif_prep: Grid dimension mismatch for '//trim(members(nn)%f_S))
             stop
          endif
       endif
@@ -75,17 +76,17 @@ program sverif_prep
    ! Allocate space based on input sizes
    allocate(tstat(nentries,NSTAT),stat=istat)
    if (istat /= 0) then
-      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for basic variables'
+      call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for basic variables')
       stop
    endif
    allocate(flds0(ni,nj,nmembers),stat=istat)
    if (istat /= 0) then
-      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for fields'
+      call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for fields')
       stop
    endif
    allocate(rng(nentries),stat=istat)
    if (istat /= 0) then
-      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for pseudorandom numbers'
+      call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for pseudorandom numbers')
       stop
    endif
 
@@ -93,7 +94,7 @@ program sverif_prep
    allocate(eavg0(ni,nj),evar0(ni,nj),stat=istat)
    evar0 = -1.
    if (istat /= 0) then
-      write(RMN_STDERR,*) '(sverif_prep) Unable to allocate space for first-entry fields'
+      call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for first-entry fields')
       stop
    endif
    call rng_seed(rng(1),932118)
@@ -147,7 +148,7 @@ contains
       call get_command_argument(5,F_out_dirname_S,mylen,istat)
       if (istat /= 0) F_istat = RMN_ERR
       if (.not.RMN_IS_OK(F_istat)) then
-         call msg(MSG_ERROR,'(sverif_prep) Wrong args, Usage: sverif_prep VARNAME LEVEL HOUR CTRL_FILENAME OUT_DIRNAME')
+         call app_log(APP_ERROR,'parse_args: Wrong args, Usage: sverif_prep VARNAME LEVEL HOUR CTRL_FILENAME OUT_DIRNAME')
       endif
       !----------------------------------------------------------------------
       return
@@ -165,30 +166,30 @@ contains
       F_istat = clib_isfile(trim(F_filename_S))
       F_istat = min(clib_isreadok(trim(F_filename_S)),F_istat)
       if (.not.RMN_IS_OK(F_istat)) then
-         call msg(MSG_ERROR,'(sverif_prep) Control File not found or not readable: '//trim(F_filename_S))
+         call app_log(APP_ERROR,'read_control_file: Control File not found or not readable: '//trim(F_filename_S))
          return
       endif
       fileid = 0
       F_istat = fnom(fileid,F_filename_S,'SEQ/FMT+R/O+OLD',0)
       if (.not.RMN_IS_OK(F_istat) .or. fileid <= 0) then
-         call msg(MSG_ERROR,'(sverif_prep) Problem opening Control file: '//trim(F_filename_S))
+         call app_log(APP_ERROR,'read_control_file: Problem opening Control file: '//trim(F_filename_S))
          return
       endif
 
       read(fileid,*,iostat=istat) nentries,nmembers,scale
       if (istat /=0 ) then
-         call msg(MSG_ERROR,'(sverif_prep) Problem reading Control file: '//trim(F_filename_S))
+         call app_log(APP_ERROR,'read_control_file: Problem reading Control file: '//trim(F_filename_S))
          return
       endif
       if (nmembers > MAX_MEMBERS) then
-         call msg(MSG_ERROR,'(sverif_prep) Too many members')
+         call app_log(APP_ERROR,'read_control_file: (sverif_prep) Too many members')
          F_istat = RMN_ERR
          return
       endif
       do nn=1,nmembers
          read(fileid,*,iostat=istat) fpath
          if (istat /=0 ) then
-            call msg(MSG_ERROR,'(sverif_prep) Problem reading members filenames in Control file: '//trim(F_filename_S))
+            call app_log(APP_ERROR,'read_control_file: Problem reading members filenames in Control file: '//trim(F_filename_S))
             F_istat = RMN_ERR
          endif
          do while (index(fpath,':') > 0)
@@ -199,13 +200,13 @@ contains
 
       allocate(entries(nentries,0:nmembers),stat=istat)
       if (istat /= 0) then
-         call msg(MSG_ERROR,'(sverif_prep) Problem allocating memory for control file entries')
+         call app_log(APP_ERROR,'read_control_file: Problem allocating memory for control file entries')
          F_istat = RMN_ERR
       endif
       do nn=1,nentries
          read(fileid,*,iostat=istat) entries(nn,0:nmembers)
          if (istat /=0 ) then
-            call msg(MSG_ERROR,'(sverif_prep) Problem reading entries in Control file: '//trim(F_filename_S))
+            call app_log(APP_ERROR,'read_control_file: Problem reading entries in Control file: '//trim(F_filename_S))
             F_istat = RMN_ERR
             return
          endif
@@ -231,7 +232,7 @@ contains
       fd = 0
       F_istat = fnom(fd,filepath_S,'SEQ/FMT',0)
       if (.not.RMN_IS_OK(F_istat) .or. fd <= 0) then
-         call msg(MSG_ERROR,'(sverif_prep) Problem opening output file: '//trim(filepath_S))
+         call app_log(APP_ERROR,'write_tstat_file: Problem opening output file: '//trim(filepath_S))
          return
       endif
       do nn=1,size(F_tstat,dim=1)
@@ -299,27 +300,27 @@ contains
       !#      control members list  is in entries(F_entry,1:nmembers)
       F_istat = prep_entry(F_entry,F_evar0,F_scale,F_rng,exavg,eavg,gss,evar)
       if (F_istat /= RMN_OK) then
-         write(RMN_STDERR,*) 'Error returned by prep_entry'
+         call app_log(APP_ERROR,'test_entry: Error returned by prep_entry')
          return
       endif
       F_istat = calc_t1(members(entries(F_entry,0))%d(:,:,1),exavg,gss0,gss,F_tstat(T1))
       if (F_istat /= RMN_OK) then
-         write(RMN_STDERR,*) 'Error returned by calc_t1'
+         call app_log(APP_ERROR,'test_entry: Error returned by calc_t1')
          return
       endif
       F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT1))
       if (F_istat /= RMN_OK) then
-         write(RMN_STDERR,*) 'Error returned by calc_nt(1)'
+         call app_log(APP_ERROR,'test_entry: Error returned by calc_nt(1)')
          return
       endif
       F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT5))
       if (F_istat /= RMN_OK) then
-         write(RMN_STDERR,*) 'Error returned by calc_nt(5)'
+         call app_log(APP_ERROR,'test_entry: Error returned by calc_nt(5)')
          return
       endif
       F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg,eavg,F_tstat(R))
       if (F_istat /= RMN_OK) then
-         write(RMN_STDERR,*) 'Error returned by calc_r'
+         call app_log(APP_ERROR,'test_entry: Error returned by calc_r')
          return
       endif
       !----------------------------------------------------------------------
@@ -412,7 +413,7 @@ contains
       if (myDump) then
          F_istat = write_ens_stats(F_exavg,F_eavg,F_gss,F_evar)
          if (F_istat /= RMN_OK) then
-            write(RMN_STDERR,*) 'Error returned by write_ens_stats'
+            call app_log(APP_ERROR,'prep_entry: Error returned by write_ens_stats')
          endif
       endif
 

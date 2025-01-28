@@ -14,7 +14,6 @@ program sverif_eval
    !      EAVG(NI,NJ)
    !      EVAR(NI,NJ)
    !*@/
-#include <rmn/msg.h>
 #include <rmn/clib_interface.cdk>
 #include <rmnlib_basics.hf>
 
@@ -31,7 +30,7 @@ program sverif_eval
    integer,parameter :: MAX_CI = 9
    integer,parameter :: LONG_STRING = 4096
 
-   character(len=LONG_STRING) :: data_filename_S,ctrl_dirname_S,msg_S
+   character(len=LONG_STRING) :: data_filename_S,ctrl_dirname_S
    character(len=4) :: varname_S
    integer :: istat,level,hour,nmembers,nci,ni,nj,i_ci
    real :: inflation
@@ -41,7 +40,7 @@ program sverif_eval
    real :: exavg,gss
    logical :: isok, success
    !----------------------------------------------------------------------
-   call msg_verbosity(MSG_ERROR)
+
    istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) stop
 
@@ -54,51 +53,54 @@ program sverif_eval
    data2d => data(:,:,1)
 
    istat = calc_t1(data2d,exavg,gss,gss,t1_stat)
-   write(RMN_STDOUT,*) 'calc_t1=',t1_stat
+   write(app_msg,*) 'calc_t1=',t1_stat
+   call app_log(APP_INFO,app_msg)
    istat = calc_nt(0.01,data2d,eavg,evar,evar,nt1_stat)
-   write(RMN_STDOUT,*) 'calc_nt1=',nt1_stat
+   write(app_msg,*) 'calc_nt1=',nt1_stat
+   call app_log(APP_INFO,app_msg)
    istat = calc_nt(0.05,data2d,eavg,evar,evar,nt5_stat)
-   write(RMN_STDOUT,*) 'calc_nt5=',nt5_stat
+   write(app_msg,*) 'calc_nt5=',nt5_stat
    istat = calc_r(data2d,exavg,eavg,r_stat)
-   write(RMN_STDOUT,*) 'calc_r=',r_stat
-   write(RMN_STDOUT,*) 'inflation=',inflation
+   write(app_msg,*) 'calc_r=',r_stat
+   call app_log(APP_INFO,app_msg)
+   write(app_msg,*) 'inflation=',inflation
+   call app_log(APP_INFO,app_msg)
 
    do i_ci=1,nci
       isok = .true.
-      msg_s = ''
-      write(RMN_STDOUT,'(a)') ' '
-      write(msg_S,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params(i_ci,CI)),']'
+      write(app_msg,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params(i_ci,CI)),']'
+      
       if (t1_stat <= params(i_ci,MAX_T1) .and. t1_stat >= params(i_ci,MIN_T1)) then
-         write(RMN_STDOUT,'(a)') 'PASS T1  '//trim(msg_S)
+         call app_log(APP_INFO,'PASS T1  '//trim(app_msg))
       else
-         write(RMN_STDOUT,'(a)') 'FAIL T1  '//trim(msg_S)
+         call app_log(APP_INFO,'FAIL T1  '//trim(app_msg))
          isok = .false.
       endif
 
       if (nt1_stat <= params(i_ci,MAX_NT1)) then
-         write(RMN_STDOUT,'(a)') 'PASS NT1 '//trim(msg_S)
+         call app_log(APP_INFO,'PASS NT1 '//trim(app_msg))
       else
-         write(RMN_STDOUT,'(a)') 'FAIL NT1 '//trim(msg_S)
+         call app_log(APP_INFO,'FAIL NT1 '//trim(app_msg))
          isok = .false.
       endif
 
       if (nt5_stat <= params(i_ci,MAX_NT5)) then
-         write(RMN_STDOUT,'(a)') 'PASS NT5 '//trim(msg_S)
+         call app_log(APP_INFO,'PASS NT5 '//trim(app_msg))
       else
-         write(RMN_STDOUT,'(a)') 'FAIL NT5 '//trim(msg_S)
+         call app_log(APP_INFO,'FAIL NT5 '//trim(app_msg))
          isok = .false.
       endif
 
       if (r_stat <= params(i_ci,MAX_R)) then
-         write(RMN_STDOUT,'(a)') 'PASS R   '//trim(msg_S)
+         call app_log(APP_INFO,'PASS R   '//trim(app_msg))
       else
-         write(RMN_STDOUT,'(a)') 'FAIL R   '//trim(msg_S)
+         call app_log(APP_INFO,'FAIL R   '//trim(app_msg))
          isok = .false.
       endif
       if (isok) then
-         write(RMN_STDOUT,'(a)') '* PASS overall '//trim(msg_S)
+         call app_log(APP_INFO,'* PASS overall '//trim(app_msg))
       else
-         write(RMN_STDOUT,'(a)') '* FAIL overall   '//trim(msg_S)
+         call app_log(APP_INFO,'* FAIL overall   '//trim(app_msg))
       endif
    enddo
    stop
@@ -115,7 +117,7 @@ contains
       integer,intent(out) :: F_level,F_hour
       integer :: F_istat
       !*@/
-      character(len=LONG_STRING) :: arg_S,msg_S
+      character(len=LONG_STRING) :: arg_S
       integer :: mylen,istat
       !----------------------------------------------------------------------
       F_istat = RMN_OK
@@ -139,11 +141,11 @@ contains
       if (istat /= 0) F_istat = RMN_ERR
 
       if (.not.RMN_IS_OK(F_istat)) then
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Wrong args, Usage: sverif_eval VARNAME LEVEL HOUR DATA_FILENAME CRTL_DIRNAME'
+         call app_log(APP_ERROR,'Wrong args, Usage: sverif_eval VARNAME LEVEL HOUR DATA_FILENAME CRTL_DIRNAME')
          return
       endif
-      write(msg_S,'(a,a,a,i4,a,i4,a,a,a,a)') '(sverif_eval) For: ',trim(F_varname_S),'; ',F_level,'; ',F_hour,'; ',trim(F_data_filename_S),'; ', trim(F_crtl_dirname_S)
-      call msg(MSG_INFO,msg_S)
+      write(app_msg,'(a,a,a,i4,a,i4,a,a,a,a)') '(sverif_eval) For: ',trim(F_varname_S),'; ',F_level,'; ',F_hour,'; ',trim(F_data_filename_S),'; ', trim(F_crtl_dirname_S)
+      call app_log(APP_INFO,app_msg)
       !----------------------------------------------------------------------
       return
    end function parse_args
@@ -179,14 +181,14 @@ contains
       F_istat = clib_isfile(trim(filename_S))
       F_istat = min(clib_isreadok(trim(filename_S)),F_istat)
       if (.not.RMN_IS_OK(F_istat)) then
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Control File not found or not readable: '//trim(filename_S)
+         call app_log(APP_ERROR,'read_ens_stats: Control File not found or not readable: '//trim(filename_S))
          return
       endif
       fileid = 0
 
       success = file%open(trim(filename_S),'RND+OLD+R/O')
       if (.not. success) then
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Problem opening Control file: '//trim(filename_S)
+         call app_log(APP_ERROR,'read_ens_stats: Problem opening Control file: '//trim(filename_S))
          return
       endif
 
@@ -196,13 +198,13 @@ contains
       F_istat = clib_isfile(trim(filename_S))
       F_istat = min(clib_isreadok(trim(filename_S)),F_istat)
       if (.not.RMN_IS_OK(F_istat)) then
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Control File not found or not readable: '//trim(filename_S)
+         call app_log(APP_ERROR,'read_ens_stats: Control File not found or not readable: '//trim(filename_S))
          return
       endif
       auxid = 0
       F_istat = fnom(auxid,filename_S,'SEQ/FMT+R/O+OLD',0)
       if (.not.RMN_IS_OK(F_istat) .or. auxid <= 0) then
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Problem opening Control file: '//trim(filename_S)
+         call app_log(APP_ERROR,'read_ens_stats: Problem opening Control file: '//trim(filename_S))
          return
       endif
 
@@ -241,7 +243,8 @@ contains
       read(line_S,*) F_nci
       if (F_nci > MAX_CI) then
          F_istat = RMN_ERR
-         write(RMN_STDERR,*) '(sverif_eval) ERROR: Too many CI ',F_nci
+         write(app_msg,*) 'read_ens_stats: Too many CI ',F_nci
+         call app_log(APP_ERROR,app_msg)
          return
       endif
       read(line_S,*) F_nci,F_params(1:F_nci,CI)

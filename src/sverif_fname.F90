@@ -1,5 +1,6 @@
 !/@*
 program sverif_fname
+   use App
    use calc_stat_mod, only: calc_filename
    implicit none
    !@objective 
@@ -30,12 +31,12 @@ program sverif_fname
       read(arg_S,*) hour
    endif
    if (.not.RMN_IS_OK(istat2)) then
-      write(RMN_STDERR,'(/a/)') '(sverif_fname) ERROR: Wrong args, Usage: sverif_fname CLASS(pre/tstat/aux) VARNAME LEVEL HOUR'
+      call app_log(APP_ERROR,'Wrong args, Usage: sverif_fname CLASS(pre/tstat/aux) VARNAME LEVEL HOUR')
       stop
    endif
    istat = calc_filename(filename_S,class_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) then
-      write(RMN_STDERR,*) '(sverif_fname) ERROR: Cannot construct file name'
+      call app_log(APP_ERROR,'Cannot construct file name')
       stop
    endif
    write(RMN_STDOUT,'(a)') trim(filename_S)

@@ -7,7 +7,6 @@ module calc_stat_mod
    private
    public :: calc_filename,calc_read,calc_t1, calc_r, calc_nt,calc_ens_pak,calc_ens_unpak
 
-#include <rmn/msg.h>
 #include <rmn/clib_interface.cdk>
 #include <rmnlib_basics.hf>
 
@@ -39,7 +38,7 @@ contains
       case ('aux')
          prefix_S = 'sverif-aux_'
       case DEFAULT
-         call msg(MSG_ERROR,'(calc_stat_mod) Unknown class '//trim(F_class_S)//' ... use "pre", "tstat" or "aux"')
+         call app_log(APP_ERROR,'calc_stat_mod: Unknown class '//trim(F_class_S)//' ... use "pre", "tstat" or "aux"')
          return
       end select
       varname_S = F_varname_S
@@ -65,7 +64,7 @@ contains
 
       success = file%open(trim(F_filename_S),'RND+OLD+R/O')
       if (.not. success) then
-         call msg(MSG_ERROR,'(calc_stat_mod) Problem opening member file '//trim(F_filename_S))
+         call app_log(APP_ERROR,'calc_stat_mod: Problem opening member file '//trim(F_filename_S))
          return
       endif
       
@@ -77,14 +76,14 @@ contains
       query = file%new_query() 
       success = query%read_next(record)
       if (.not. success) then
-         call msg(MSG_ERROR,'(calc_stat_mod) Problem finding member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
+         call app_log(APP_ERROR,'calc_stat_mod: Problem finding member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
          return
       endif
 
       call query%free()
 
       success = file%close()
-      call msg(MSG_INFO,'(calc_stat_mod) Reading member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
+      call app_log(APP_ERROR,'calc_stat_mod: Reading member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
 
       return
    end function calc_read
@@ -161,7 +160,7 @@ contains
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
-         call msg(MSG_ERROR,'(calc_stat_mod) Numbers of members should be >= 3')
+         call app_log(APP_ERROR,'calc_stat_mod: Numbers of members should be >= 3')
          return
       endif
       F_istat = RMN_OK
@@ -184,7 +183,7 @@ contains
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
-         call msg(MSG_ERROR,'(calc_stat_mod) Numbers of members should be >= 3')
+         call app_log(APP_ERROR,'calc_stat_mod: Numbers of members should be >= 3')
          return
       endif
       F_istat = RMN_OK
@@ -219,7 +218,7 @@ contains
       !----------------------------------------------------------------------
       if (calc_nmembers < 3) then
          F_istat = RMN_ERR
-         call msg(MSG_ERROR,'(calc_stat_mod) Numbers of members should be >= 3')
+         call app_log(APP_ERROR,'calc_stat_mod: Numbers of members should be >= 3')
          return
       endif
       F_istat = RMN_OK
