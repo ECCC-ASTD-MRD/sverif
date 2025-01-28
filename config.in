@@ -17,7 +17,6 @@ env=@EC_CI_ENV@
 arch=@EC_ARCH@
 
 has_rmn=@rmn_VERSION@
-has_modelutils=@modelutils_VERSION@
 
 usage()
 {
@@ -36,7 +35,6 @@ Available values for OPTION include:
   --env          environment version used [${env}]
   --arch         architecture of build [${arch}]
   --has-rmn      which version of librmn is it compiled with [${has_rmn}]
-  --has-modelutils which version of modelutils is it compiled with [${has_modelutils}]
 
 EOF
 }

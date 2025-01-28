@@ -33,8 +33,7 @@ install(PROGRAMS "${CMAKE_SOURCE_DIR}/scripts/sverif_prep" DESTINATION bin)
 install(FILES "${CMAKE_SOURCE_DIR}/scripts/eval.R" DESTINATION bin)
 install(FILES "${CMAKE_SOURCE_DIR}/scripts/prep.R" DESTINATION bin)
 
-add_subdirectory(src/modelutils modelutils)
-add_subdirectory(src/sverif sverif)
+add_subdirectory(src src)
 
 #----- Generate the config file for the project to be usable via cmake's find_package command
 set(INCLUDE_INSTALL_DIR include)
