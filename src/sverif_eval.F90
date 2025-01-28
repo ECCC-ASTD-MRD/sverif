@@ -171,7 +171,6 @@ contains
       logical          :: success
       type(fst_file)   :: file
       type(fst_record) :: record
-      type(fst_query)  :: query
 
       !----------------------------------------------------------------------
 
@@ -186,7 +185,7 @@ contains
       endif
       fileid = 0
 
-      success = file%open(trim(filename_S),'RND+OLD+R/O')
+      success = file%open(trim(filename_S),options='RND+OLD+R/O')
       if (.not. success) then
          call app_log(APP_ERROR,'read_ens_stats: Problem opening Control file: '//trim(filename_S))
          return
@@ -208,35 +207,14 @@ contains
          return
       endif
 
-      ! Read in header and gridded data from precomputed statistics file
-      record%data=c_loc(pakdata)
-      record%nomvar=F_varname_S
-      record%ip1=F_level
-      record%ip2=F_hour
-      
-      query = file%new_query() 
-      success = query%read_next(record)
+      ! Read in header and gridded data from precomputed statistics file     
+      success = file%read(record,data=c_loc(pakdata),nomvar=F_varname_S,ip1=F_level,ip2=F_hour)
       F_istat = calc_ens_unpak(pakdata,varname_S,level,hour,F_ni,F_nj,F_nmembers,F_exavg,F_gss)
-      call query%free()
 
       allocate(F_eavg(F_ni,F_nj),F_evar(F_ni,F_nj))
-      allocate(F_eavg(F_ni,F_nj),F_evar(F_ni,F_nj))
 
-      record%data=c_loc(F_eavg)
-      record%nomvar='eavg'
-      record%datev=-1
-
-      query = file%new_query() 
-      success = query%read_next(record)
-      call query%free()
-
-      record%data=c_loc(F_evar)
-      record%nomvar='evar'
-      record%datev=-1
-      
-      query = file%new_query() 
-      success = query%read_next(record)
-      call query%free()
+      success = file%read(record,data=c_loc(F_eavg),nomvar='eavg')
+      success = file%read(record,data=c_loc(F_evar),nomvar='evar')
 
       ! Read in basic text information from auxiliary file
       read(auxid,'(a)') line_S
@@ -271,8 +249,7 @@ contains
       read(auxid,*) F_inflation
       
       ! Close files and return
-      istat = fstfrm(fileid)
-      istat = fclos(fileid)
+      success = file%close()
       istat = fclos(auxid)
       !----------------------------------------------------------------------
       return

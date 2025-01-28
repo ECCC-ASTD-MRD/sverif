@@ -60,30 +60,21 @@ contains
       logical          :: success
       type(fst_file)   :: file
       type(fst_record) :: record
-      type(fst_query)  :: query
 
-      success = file%open(trim(F_filename_S),'RND+OLD+R/O')
+      success = file%open(trim(F_filename_S),options='RND+OLD+R/O')
       if (.not. success) then
          call app_log(APP_ERROR,'calc_stat_mod: Problem opening member file '//trim(F_filename_S))
          return
       endif
       
-      record%data=c_loc(F_data)
-      record%nomvar=F_varname_S
-      record%ip1=F_level
-      record%ip2=F_hour
-      
-      query = file%new_query() 
-      success = query%read_next(record)
+      success = file%read(record,nomvar=F_varname_S,ip1=F_level,ip2=F_hour)
       if (.not. success) then
          call app_log(APP_ERROR,'calc_stat_mod: Problem finding member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
          return
       endif
-
-      call query%free()
+      call record%get_data_array(F_data)
 
       success = file%close()
-      call app_log(APP_ERROR,'calc_stat_mod: Reading member file field: '//trim(F_varname_S)//' in '//trim(F_filename_S))
 
       return
    end function calc_read
