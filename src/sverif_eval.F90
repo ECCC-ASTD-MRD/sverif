@@ -54,53 +54,53 @@ program sverif_eval
 
    istat = calc_t1(data2d,exavg,gss,gss,t1_stat)
    write(app_msg,*) 'calc_t1=',t1_stat
-   call app_log(APP_INFO,app_msg)
+   call app_log(APP_VERBATIM,app_msg)
    istat = calc_nt(0.01,data2d,eavg,evar,evar,nt1_stat)
    write(app_msg,*) 'calc_nt1=',nt1_stat
-   call app_log(APP_INFO,app_msg)
+   call app_log(APP_VERBATIM,app_msg)
    istat = calc_nt(0.05,data2d,eavg,evar,evar,nt5_stat)
    write(app_msg,*) 'calc_nt5=',nt5_stat
    istat = calc_r(data2d,exavg,eavg,r_stat)
    write(app_msg,*) 'calc_r=',r_stat
-   call app_log(APP_INFO,app_msg)
+   call app_log(APP_VERBATIM,app_msg)
    write(app_msg,*) 'inflation=',inflation
-   call app_log(APP_INFO,app_msg)
+   call app_log(APP_VERBATIM,app_msg)
 
    do i_ci=1,nci
       isok = .true.
       write(app_msg,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params(i_ci,CI)),']'
       
       if (t1_stat <= params(i_ci,MAX_T1) .and. t1_stat >= params(i_ci,MIN_T1)) then
-         call app_log(APP_INFO,'PASS T1  '//trim(app_msg))
+         call app_log(APP_VERBATIM,'PASS T1  '//trim(app_msg))
       else
-         call app_log(APP_INFO,'FAIL T1  '//trim(app_msg))
+         call app_log(APP_VERBATIM,'FAIL T1  '//trim(app_msg))
          isok = .false.
       endif
 
       if (nt1_stat <= params(i_ci,MAX_NT1)) then
-         call app_log(APP_INFO,'PASS NT1 '//trim(app_msg))
+         call app_log(APP_VERBATIM,'PASS NT1 '//trim(app_msg))
       else
-         call app_log(APP_INFO,'FAIL NT1 '//trim(app_msg))
+         call app_log(APP_VERBATIM,'FAIL NT1 '//trim(app_msg))
          isok = .false.
       endif
 
       if (nt5_stat <= params(i_ci,MAX_NT5)) then
-         call app_log(APP_INFO,'PASS NT5 '//trim(app_msg))
+         call app_log(APP_VERBATIM,'PASS NT5 '//trim(app_msg))
       else
-         call app_log(APP_INFO,'FAIL NT5 '//trim(app_msg))
+         call app_log(APP_VERBATIM,'FAIL NT5 '//trim(app_msg))
          isok = .false.
       endif
 
       if (r_stat <= params(i_ci,MAX_R)) then
-         call app_log(APP_INFO,'PASS R   '//trim(app_msg))
+         call app_log(APP_VERBATIM,'PASS R   '//trim(app_msg))
       else
-         call app_log(APP_INFO,'FAIL R   '//trim(app_msg))
+         call app_log(APP_VERBATIM,'FAIL R   '//trim(app_msg))
          isok = .false.
       endif
       if (isok) then
-         call app_log(APP_INFO,'* PASS overall '//trim(app_msg))
+         call app_log(APP_VERBATIM,'* PASS overall '//trim(app_msg))
       else
-         call app_log(APP_INFO,'* FAIL overall   '//trim(app_msg))
+         call app_log(APP_VERBATIM,'* FAIL overall   '//trim(app_msg))
       endif
    enddo
    stop
