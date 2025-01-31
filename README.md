@@ -56,7 +56,7 @@ make -j 4
 make install
 ```
 
-# Preparing package
+### Preparing package
 
 ```
 make package
