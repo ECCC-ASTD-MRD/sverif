@@ -1,6 +1,16 @@
 # Description
 
-SVerif: ECCC-MRD-RPN Statistical verification package
+`ECCC-MRD-RPN Statistical verification package`
+
+* The statistical verification package (sverif) is designed to allow model developers to assess the impact of small changes with a single model integration.  This is useful when modifications are expected to modify the bitpattern of the results, but not the meteorology.  The package provides tools to allow for the construction of benchmark data, and to compare subsequent integrations with the expected results.
+
+* Although the statistical verification package was developed for the comparison of a model integration against the range of expected results, it is based on concepts developed for general comparison of 2D fields.  It may therefore be useful for other applications not anticipated by the developers of the package.
+
+* The [user's Guide](doc/userguide.md) is a way for users to quickly learn how to use the statistical verification package.
+
+* The [technical documentation](doc/techdoc.md) about the statistical verification package is designed for developers who intend to modify the source code of the package.
+
+* See also [sverif-presentation-2012.ppt](doc/sverif-presentation-2012.ppt)
 
 # Compilation
 
