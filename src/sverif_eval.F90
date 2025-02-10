@@ -166,7 +166,7 @@ contains
       integer :: level, hour, istat, fileid, fd, auxid, ii,jj,ii1,jj1,idx,i_ci,datev,key,ni1,nj1,nk1
       logical :: isfound
       real :: v1,v2
-      real :: pakdata(CALC_ENSPAK_SIZE)
+      real, target :: pakdata(CALC_ENSPAK_SIZE)
 
       logical          :: success
       type(fst_file)   :: file
