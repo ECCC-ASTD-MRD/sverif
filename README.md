@@ -40,11 +40,7 @@ architecture.  This will load the specified compiler, set the
 . $ECCI_ENV/latest/ubuntu-22.04-amd-64/gnu.sh
 ```
 
-Since the default version of CMake available on ECCC systems is probably too
-old, you need to load a version newer than 3.20.  For example: `. ssmuse-sh
--d main/opt/cmake/cmake-3.21.1`.
-
-Load the latest stable version of librmn.
+Load the latest alpha version of librmn.
 
 ### Build and install
 
@@ -67,7 +63,7 @@ make package
 ### Build dependencies
 
 - CMake 3.20+
-- librmn with shared libraries (https://github.com/ECCC-ASTD-MRD/librmn/)
+- librmn alpha branch with shared libraries (https://github.com/ECCC-ASTD-MRD/librmn/)
 
 `cmake_rpn` is included as a git submodule.  Please clone with the
 `--recursive` option or run `git submodule update --init --recursive` in the
