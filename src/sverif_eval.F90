@@ -41,6 +41,7 @@ program sverif_eval
    logical :: isok, success
    !----------------------------------------------------------------------
 
+   call app_logstream('stdout')
    istat = parse_args(data_filename_S,ctrl_dirname_S,varname_S,level,hour)
    if (.not.RMN_IS_OK(istat)) stop
 
@@ -53,54 +54,66 @@ program sverif_eval
    data2d => data(:,:,1)
 
    istat = calc_t1(data2d,exavg,gss,gss,t1_stat)
-   write(app_msg,*) 'calc_t1=',t1_stat
-   call app_log(APP_VERBATIM,app_msg)
+   write(6,*) 'calc_t1=',t1_stat
+!   call app_log(APP_VERBATIM,app_msg)
    istat = calc_nt(0.01,data2d,eavg,evar,evar,nt1_stat)
-   write(app_msg,*) 'calc_nt1=',nt1_stat
-   call app_log(APP_VERBATIM,app_msg)
+   write(6,*) 'calc_nt1=',nt1_stat
+!   call app_log(APP_VERBATIM,app_msg)
    istat = calc_nt(0.05,data2d,eavg,evar,evar,nt5_stat)
-   write(app_msg,*) 'calc_nt5=',nt5_stat
+   write(6,*) 'calc_nt5=',nt5_stat
+!   call app_log(APP_VERBATIM,app_msg)
    istat = calc_r(data2d,exavg,eavg,r_stat)
-   write(app_msg,*) 'calc_r=',r_stat
-   call app_log(APP_VERBATIM,app_msg)
-   write(app_msg,*) 'inflation=',inflation
-   call app_log(APP_VERBATIM,app_msg)
+   write(6,*) 'calc_r=',r_stat
+!   call app_log(APP_VERBATIM,app_msg)
+   write(6,*) 'inflation=',inflation
+!   call app_log(APP_VERBATIM,app_msg)
 
    do i_ci=1,nci
       isok = .true.
+      write(6,'(a)') ' '
       write(app_msg,'(a,i4,a,i4,a,f4.2,a)') '(sverif_eval) '//trim(varname_S)//' [',level,'mb; ',hour,'h; CI=',real(params(i_ci,CI)),']'
       
       if (t1_stat <= params(i_ci,MAX_T1) .and. t1_stat >= params(i_ci,MIN_T1)) then
-         call app_log(APP_VERBATIM,'PASS T1  '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'PASS T1  '//trim(app_msg))
+         write(6,'(a)') 'PASS T1  '//trim(app_msg)
       else
-         call app_log(APP_VERBATIM,'FAIL T1  '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'FAIL T1  '//trim(app_msg))
+         write(6,'(a)') 'FAIL T1  '//trim(app_msg)
          isok = .false.
       endif
 
       if (nt1_stat <= params(i_ci,MAX_NT1)) then
-         call app_log(APP_VERBATIM,'PASS NT1 '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'PASS NT1 '//trim(app_msg))
+         write(6,'(a)') 'PASS NT1  '//trim(app_msg)
       else
-         call app_log(APP_VERBATIM,'FAIL NT1 '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'FAIL NT1 '//trim(app_msg))
+         write(6,'(a)') 'FAIL NT1  '//trim(app_msg)
          isok = .false.
       endif
 
       if (nt5_stat <= params(i_ci,MAX_NT5)) then
-         call app_log(APP_VERBATIM,'PASS NT5 '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'PASS NT5 '//trim(app_msg))
+         write(6,'(a)') 'PASS NT5  '//trim(app_msg)
       else
-         call app_log(APP_VERBATIM,'FAIL NT5 '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'FAIL NT5 '//trim(app_msg))
+         write(6,'(a)') 'FAIL NT15 '//trim(app_msg)
          isok = .false.
       endif
 
       if (r_stat <= params(i_ci,MAX_R)) then
-         call app_log(APP_VERBATIM,'PASS R   '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'PASS R   '//trim(app_msg))
+         write(6,'(a)') 'PASS R  '//trim(app_msg)
       else
-         call app_log(APP_VERBATIM,'FAIL R   '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'FAIL R   '//trim(app_msg))
+         write(6,'(a)') 'FAIL R '//trim(app_msg)
          isok = .false.
       endif
       if (isok) then
-         call app_log(APP_VERBATIM,'* PASS overall '//trim(app_msg))
-      else
-         call app_log(APP_VERBATIM,'* FAIL overall   '//trim(app_msg))
+!         call app_log(APP_VERBATIM,'* PASS overall '//trim(app_msg))
+          write(6,'(a)') 'PASS overall  '//trim(app_msg)
+     else
+!         call app_log(APP_VERBATIM,'* FAIL overall   '//trim(app_msg))
+         write(6,'(a)') 'FAIL overall '//trim(app_msg)
       endif
    enddo
    stop

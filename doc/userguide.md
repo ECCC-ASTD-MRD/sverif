@@ -74,7 +74,7 @@ sverif_prep --level=250 --boot=500 --threads=8 $(find /path/to/my/runs -name "pr
 This would run the preparatory calculations for 500 samples of the original dataset, using the day-5 forecasts of the 250 mb height field to compute the test statistics (note the default values of the ```--name``` and ```--prog``` options). The results of the ```find``` are used to define the data files used for the calculations. If the ```SVERIF_STATPATH``` is undefined, then the above command will stop and require that the option ```--statpath``` be defined.
 
 ## The sverif_eval utility
-This utility compares the values of the (test statistics)[#description-of-the-test-statistics] of a single (or set of) fields with the expected values obtained during the preparation step (the output of the[sverif_prep](#the-sverif_prep-utility) utility).  To get a list of possible optinos, type:
+This utility compares the values of the (test statistics)[#description-of-the-test-statistics] of a single (or set of) fields with the expected values obtained during the preparation step (the output of the[sverif_prep](#the-sverif_prep-utility) utility).  To get a list of possible options, type:
 ```bash
 sverif_eval -h
 ```
