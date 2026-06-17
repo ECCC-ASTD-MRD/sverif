@@ -4,28 +4,28 @@
 
 # Source this file to:
 # - Load profile, Intel 2022 compiler and code-tools for Intel
-# - Load RPN-SI libraries and utilities, and RPNPY
-# - Load a script for common setup to all compilers
-
-DOMAIN=`hostname -d`
+# - Load RPN-SI libraries and utilities
 
 # Check name of the script called, to export corresponding Intel compiler version
 INTEL_SCRIPT_NAME=$(echo $(basename ${BASH_SOURCE[0]}))
 
 case ${INTEL_SCRIPT_NAME} in
     .eccc_setup_intel)
-        export COMPILER_VERSION=2022.1.2
+        export COMPILER_VERSION=2025.1.0
         ;;
-    .eccc_setup_intel_2024.2.0)
-        export COMPILER_VERSION=2024.2.0
+    .eccc_setup_intel_2025.1.0)
+        export COMPILER_VERSION=2025.1.0
+        ;;
+    .eccc_setup_intel_2026.0.0)
+        export COMPILER_VERSION=2026.0.0
         ;;
 esac
 
 # Load code-tools 
-. r.load.dot rpn/code-tools/20240719/env/inteloneapi-${COMPILER_VERSION}
+. r.load.dot rpn/code-tools/latest/env/inteloneapi-${COMPILER_VERSION}
 
 # Load latest version of RPN-SI libraries and utilities
-. r.load.dot mrd/rpn/libs/20241105-alpha
-. r.load.dot mrd/rpn/utils/20241105-alpha
+. r.load.dot rpn/libs/20260512-beta/
+. r.load.dot rpn/utils/20260512-beta/
 
 export SVERIF_STATPATH=${TMPDIR}
