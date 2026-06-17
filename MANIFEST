@@ -5,7 +5,8 @@ DESCRIPTION: ECCC-MRD-RPN Statistical verification package
 SUMMARY    : 
 MAINTAINER : Vivian Lee - Vivian.Lee@ec.gc.ca
 URL        : https://wiki.cmc.ec.gc.ca/wiki/sverif
-
+	     https://gitlab.science.gc.ca/RPN-SI/sverif
+	     https://github.com/ECCC-ASTD-MRD/sverif
 
 # Dependencies 
 #    =,<,<=,>,>= : Version rules
