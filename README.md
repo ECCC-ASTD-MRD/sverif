@@ -23,21 +23,31 @@
 
 ### Environment
 
-Source the right file from the `ECCI_ENV` variable, depending on the desired
-architecture.  This will load the specified compiler, set the
-`ECCI_DATA_DIR` variable for the test datasets, and set the
+You can use the setup file for Intel:  
+```
+. ./.eccc_setup_intel
+```
+
+Or load the right environment, depending on the architecture you need.  This
+will load the specified compiler and its parameters, and set the
 `EC_CMAKE_MODULE_PATH` variable for the `cmake_rpn` modules.
 
-- Example for PPP5:
+- Example for ppp7/sc7 and icelake specific architecture:
 
 ```
-. $ECCI_ENV/latest/ppp5/inteloneapi-2022.1.2.sh
+. r.load.dot mrd/rpn/code-tools/latest/env/rhel-9-graniterapids-64@inteloneapi-2025.1.0
 ```
 
-- Example for CMC network and gnu 11.4.0:
+- Example for generic architecture on ppp7/sc7
 
 ```
-. $ECCI_ENV/latest/ubuntu-22.04-amd-64/gnu.sh
+. r.load.dot mrd/rpn/code-tools/latest/env/rhel-9-amd64-64@inteloneapi-2025.1.0
+```
+
+- Example for GNU on any architecture:
+
+```
+. r.load.dot mrd/rpn/code-tools/latest/env/gnu
 ```
 
 Load the latest alpha version of librmn.
@@ -63,7 +73,7 @@ make package
 ### Build dependencies
 
 - CMake 3.20+
-- librmn alpha branch with shared libraries (https://github.com/ECCC-ASTD-MRD/librmn/)
+- librmn alpha branch with shared libraries (https://github.com/ECCC-ASTD-MRD/librmn/tree/alpha)
 
 `cmake_rpn` is included as a git submodule.  Please clone with the
 `--recursive` option or run `git submodule update --init --recursive` in the
@@ -80,7 +90,7 @@ make install
 ```
 
 # Running Sverif
- - https://wiki.cmc.ec.gc.ca/wiki/Sverif
+ - Internal documentation: https://wiki.cmc.ec.gc.ca/wiki/Sverif
  - use -b 5 only to test the mechanism of sverif
  - use -b 1000 to compare generated image (png) between versions of sverif
  - run to run results are not bit-reproducible as random generator is used
