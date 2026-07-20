@@ -39,8 +39,7 @@ program sverif_prep
    integer,allocatable :: entries(:,:)
    real :: scale
    real :: exavg0,gss0
-   real, dimension(:,:,:), allocatable :: flds0
-   real,dimension(:,:),allocatable :: tstat,evar0,eavg0
+   real,dimension(:,:),allocatable :: tstat,evar0,eavg0,evar
    real, dimension(:,:,:), allocatable :: mdata
    type(memberdata_T) :: members(MAX_MEMBERS)
    type(rng_t), dimension(:), allocatable :: rng
@@ -82,11 +81,6 @@ program sverif_prep
       call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for basic variables')
       stop
    endif
-   allocate(flds0(ni,nj,nmembers),stat=istat)
-   if (istat /= 0) then
-      call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for fields')
-      stop
-   endif
    allocate(rng(nentries),stat=istat)
    if (istat /= 0) then
       call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for pseudorandom numbers')
@@ -94,7 +88,7 @@ program sverif_prep
    endif
 
    ! Initialize and write unperturbed estimates
-   allocate(eavg0(ni,nj),evar0(ni,nj),stat=istat)
+   allocate(eavg0(ni,nj),evar0(ni,nj),evar(ni,nj),stat=istat)
    evar0 = -1.
    if (istat /= 0) then
       call app_log(APP_ERROR,'sverif_prep: Unable to allocate space for first-entry fields')
@@ -104,11 +98,11 @@ program sverif_prep
    istat = prep_entry(1,evar0,0.,rng(1),exavg0,eavg0,gss0,evar0,dump=.true.)
 
    ! Compute test statistics for each sample entry
-!$omp parallel private(istat)
+!$omp parallel private(istat,nn)
 !$omp do
    do nn=1,nentries
       call rng_seed(rng(nn),932117+nn)  !create thread-safe random number seeds
-      istat = test_entry(nn,evar0,scale,rng(nn),tstat(nn,:))
+      istat = test_entry(nn,evar0,scale,rng(nn),eavg0,evar,tstat(nn,:))
    enddo
 !$omp enddo
 !$omp end parallel
@@ -284,23 +278,24 @@ contains
 
 
    !/@*
-   function test_entry(F_entry,F_evar0,F_scale,F_rng,F_tstat) result(F_istat)
+   function test_entry(F_entry,F_evar0,F_scale,F_rng,F_eavg,F_evar,F_tstat) result(F_istat)
       use rng_mod, only: rng_t
       implicit none
       integer, intent(in) :: F_entry
       real, intent(in) :: F_scale
       type(rng_t), intent(inout) :: F_rng
       real, dimension(:,:), intent(in) :: F_evar0
+      real, dimension(:,:), intent(inout) :: F_eavg,F_evar
       real, dimension(:), intent(out) :: F_tstat
       integer :: F_istat
       !*@/
-      integer :: err
+      integer :: err,ni,nj
       real :: exavg,gss
       !----------------------------------------------------------------------
       F_istat = RMN_ERR
       !#      test member number    is in entries(F_entry,0)
       !#      control members list  is in entries(F_entry,1:nmembers)
-      F_istat = prep_entry(F_entry,F_evar0,F_scale,F_rng,exavg,eavg,gss,evar)
+      F_istat = prep_entry(F_entry,F_evar0,F_scale,F_rng,exavg,F_eavg,gss,F_evar)
       if (F_istat /= RMN_OK) then
          call app_log(APP_ERROR,'test_entry: Error returned by prep_entry')
          return
@@ -310,17 +305,17 @@ contains
          call app_log(APP_ERROR,'test_entry: Error returned by calc_t1')
          return
       endif
-      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT1))
+      F_istat = calc_nt(0.01,members(entries(F_entry,0))%d(:,:,1),F_eavg,evar0,F_evar,F_tstat(NT1))
       if (F_istat /= RMN_OK) then
          call app_log(APP_ERROR,'test_entry: Error returned by calc_nt(1)')
          return
       endif
-      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),eavg,evar0,evar,F_tstat(NT5))
+      F_istat = calc_nt(0.05,members(entries(F_entry,0))%d(:,:,1),F_eavg,F_evar0,F_evar,F_tstat(NT5))
       if (F_istat /= RMN_OK) then
          call app_log(APP_ERROR,'test_entry: Error returned by calc_nt(5)')
          return
       endif
-      F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg,eavg,F_tstat(R))
+      F_istat = calc_r(members(entries(F_entry,0))%d(:,:,1),exavg,F_eavg,F_tstat(R))
       if (F_istat /= RMN_OK) then
          call app_log(APP_ERROR,'test_entry: Error returned by calc_r')
          return

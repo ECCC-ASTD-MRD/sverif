@@ -40,7 +40,7 @@ for (file in dfiles){
 }
 
 # Retrieve pdes for test statistics
-t.stat<-read.table(paste(statpath,system(paste("sverif_fname.Abs",var,lev,prog),intern=TRUE),sep="/"))
+t.stat<-read.table(paste(statpath,system(paste("sverif_fname.Abs tstat",var,lev,prog),intern=TRUE),sep="/"))
 colnames(t.stat)<-t.stat.names
 pde<-list()
 for (t.name in t.stat.names){
