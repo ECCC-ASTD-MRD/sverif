@@ -57,9 +57,23 @@ Load the latest alpha version of librmn.
 ```
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=${your_choice}
+cmake .. -DCMAKE_INSTALL_PREFIX=${your_install_choice}
 make -j 4
 make install
+```
+
+If testing locally, set the PATH environment to find bin, scripts
+And make sure you are running on a backend node with lots of cpus
+
+### Export variables to test locally
+
+```
+cd [path of cloned repo]
+export PATH=${PWD}/scripts:${your_install_choice}/bin:${PATH}
+mkdir work
+cd work
+mkdir STATS
+Look at Running Sverif below
 ```
 
 ### Preparing package
@@ -93,9 +107,19 @@ make install
  - Internal documentation: https://wiki.cmc.ec.gc.ca/wiki/Sverif
  - use -b 5 only to test the mechanism of sverif
  - use -b 1000 to compare generated image (png) between versions of sverif
+ - -n for name of variable
+ - -v for verbose
+ - -l for level in mb
+ - -p for prog in hours
+ - -t for number of threads to use (100 is much faster than 8)
  - run to run results are not bit-reproducible as random generator is used
 
 ```
 sverif_prep -p 24 -b 5 -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
 sverif_eval -p 24  -s $PWD prgdm2021120200_024 prgdm2021120201_024 prgdm2021120202_024
+sverif_prep -n TT -l 850 -b 1000 -p 6 -t 100 -s [work_path]/STATS [data_path]/2022040500_*
+--> to test only sverif_prep.Abs, must uncomment lines in sverif_prep.F90 to obtain the temporary file [ctrl_filename]
+sverif_prep.Abs TT 850 6 [ctrl_filename] [work_path]/STATS/
+sverif_eval -n TT -l 850 -p 6 -s [work_path]/STATS [data_path]/2022040500_*
+sverif_eval.Abs  TT 850 6 2022040500_169x57 [work_path]/STATS
 ```
