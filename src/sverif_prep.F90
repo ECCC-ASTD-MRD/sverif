@@ -293,7 +293,6 @@ contains
       !*@/
       integer :: err
       real :: exavg,gss
-      real, dimension(size(F_evar0,dim=1),size(F_evar0,dim=2)) :: eavg,evar
       !----------------------------------------------------------------------
       F_istat = RMN_ERR
       !#      test member number    is in entries(F_entry,0)
