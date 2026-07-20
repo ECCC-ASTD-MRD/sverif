@@ -54,6 +54,9 @@ program sverif_prep
    write(RMN_STDOUT,*) trim(varname_S),level,hour,trim(ctrl_filename_S)
    istat = read_control_file(ctrl_filename_S)
    if (.not.RMN_IS_OK(istat)) stop
+   !Uncomment these lines to dump out the tempfile to test this binary solo
+   !cmd='cp '//trim(ctrl_filename_S)//' PATH-TO-ctrl_filename'
+   !call system(trim(cmd))
    write(RMN_STDOUT,*) 'nentries, nmembers',nentries,nmembers
    calc_nmembers = nmembers
    do nn=1,nmembers
